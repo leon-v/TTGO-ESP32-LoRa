@@ -45,9 +45,17 @@ void app_main(void) {
     gpio_config(&io_conf);
 
     printf("Waiting for GIO0 to go low to start config mode....\n");
-    ets_delay_us(3000000);
+    int counter = 100;
+    while ( (counter > 0) && (gpio_get_level(0)) ) {
 
-    if (gpio_get_level(0)){
+    	vTaskDelay(10 / portTICK_PERIOD_MS);
+    	// printf("Loop %d\n", counter);
+
+    	counter--;
+    }
+
+
+    if (!counter){
     	printf("Starting in normal mode.\n");
     	wifiClientInit();
     }

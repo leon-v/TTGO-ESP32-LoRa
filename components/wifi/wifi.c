@@ -18,7 +18,6 @@ static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){
         	break;
 
     	case SYSTEM_EVENT_STA_GOT_IP:
-    		printf("WiFi - Event - Got IP address: %s.\n", ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
         	xEventGroupSetBits(wifiEventGroup, WIFI_CONNECTED_BIT);
         	break;
 

@@ -230,6 +230,8 @@ void ssd1306TaskDisplayText(const void *arg_text) {
 	vTaskDelete(NULL);
 }
 
+
+
 void ssd1306CLS(void) {
 	xTaskCreate(&task_ssd1306_display_clear, "ssd1306_display_clear",  2048, NULL, 6, NULL);
 }
@@ -250,6 +252,32 @@ void ssd1306Scroll(void) {
 	xTaskCreate(&ssd1306TaskScroll, "ssd1306TaskScroll", 2048, NULL, 6, NULL);
 }
 
+void ssd1306TaskLoop(const void *arg){
+
+	// while(1){
+
+
+		ssd1306CLS();
+
+		vTaskDelay(100 / portTICK_PERIOD_MS);
+
+		ssd1306DisplayText("Leon <3 Claire\n4 ever\n& ever\n&ever");
+
+		vTaskDelay(10 / portTICK_PERIOD_MS);
+
+		// ssd1306Scroll();
+
+		// vTaskDelay(5000 / portTICK_PERIOD_MS);
+
+	// }
+
+	vTaskDelete(NULL);
+}
+
+void ssd1306Loop(void){
+	xTaskCreate(&ssd1306TaskLoop, "ssd1306TaskLoop", 2048, NULL, 6, NULL);
+}
+
 
 void ssd1306Init(void) {
 
@@ -257,12 +285,6 @@ void ssd1306Init(void) {
 
 	ssd1306ModuleInit();
 
-	ssd1306CLS();
-
-	vTaskDelay(100/portTICK_PERIOD_MS);
-
-	ssd1306DisplayText("Hello world!\nMulitine is OK!\nAnother line");
-
-	ssd1306Scroll();
+	ssd1306Loop();
 
 }
