@@ -33,7 +33,23 @@ void app_main(void) {
       	ESP_ERROR_CHECK(nvs_flash_init());
 	}
 
-	// beelineInit();
+	// Set device unique ID
+    nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
+
+	size_t nvsLength;
+	espError = nvs_get_str(nvsHandle, "uniqueName", NULL, &nvsLength);
+
+	if (espError == ESP_ERR_NVS_NOT_FOUND){
+		uint8_t mac[6];
+	    char id_string[16];
+	    esp_read_mac(mac, ESP_MAC_WIFI_STA);
+	    sprintf(id_string, "%02x%02X%02X", mac[3], mac[4], mac[5]);
+
+		ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "uniqueName", id_string));
+		ESP_ERROR_CHECK(nvs_commit(nvsHandle));
+		nvs_close(nvsHandle);
+	}
 
 	// Setup config button
 	gpio_config_t io_conf;
@@ -71,6 +87,8 @@ void app_main(void) {
     	wifiAccessPointInit();
     }
 
+    ssd1306Init();
+
     httpServerInit();
     mqttConnectionInit();
 
@@ -81,6 +99,4 @@ void app_main(void) {
     dateTimeInit();
 
     sensorDieTemperatureInit();
-
-    ssd1306Init();
 }

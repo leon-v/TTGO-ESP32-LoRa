@@ -20,8 +20,11 @@ static const char *TAG = "Sensor";
 
 #include "mqtt_connection.h"
 #include "elastic.h"
+#include "ssd1306.h"
 
 esp_adc_cal_characteristics_t *adc_chars = NULL;
+
+unsigned char disaplyLine = 0;
 
 // reverses a string 'str' of length 'len'
 void reverse(char *str, int len)
@@ -97,10 +100,22 @@ int sensorDieTemperatureRead (void) {
     return GET_PERI_REG_BITS2(SENS_SAR_SLAVE_ADDR3_REG, SENS_TSENS_OUT, SENS_TSENS_OUT_S);
 }
 
+
 void sensorDieTemperatureSendMessage(char * sensor, float value) {
 
 	char valueString[32];
 	ftoa(value, valueString, 1);
+
+	ssd1306Text_t ssd1306Text;
+	ssd1306Text.line = disaplyLine++;
+
+	char disaplyMessage[32];
+	strcpy(disaplyMessage, sensor);
+	strcat(disaplyMessage, ": ");
+	strcat(disaplyMessage, valueString);
+	ssd1306Text.text = disaplyMessage;
+
+	ssd1306SetText(&ssd1306Text);
 
 	mqttConnectionMessage_t mqttConnectionMessage;
 
@@ -157,10 +172,11 @@ static void sensorDieTemperatureTask(void *arg){
 			continue;
 		}
 
-		vTaskDelay(15000 / portTICK_RATE_MS); // Delay for 2 ticks to allow scheduler time to execute
+		vTaskDelay(2000 / portTICK_RATE_MS); // Delay for 2 ticks to allow scheduler time to execute
 
 		ESP_LOGI(TAG, "Wait was connected\n");
 
+		disaplyLine = 0;
 
 		strcpy(sensor, "DieTemperature");
 

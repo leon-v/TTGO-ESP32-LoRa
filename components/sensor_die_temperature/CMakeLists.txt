@@ -4,6 +4,6 @@ file(GLOB component_files "*.c")
 
 set(COMPONENT_SRCS ${component_files})
 
-set(COMPONENT_PRIV_REQUIRES mqtt_connection elastic esp_adc_cal)
+set(COMPONENT_PRIV_REQUIRES mqtt_connection elastic esp_adc_cal ssd1306)
 
 register_component()

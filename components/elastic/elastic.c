@@ -21,6 +21,9 @@ xQueueHandle getSlasticMessageQueue(void){
 }
 
 esp_err_t elasticHTTPEventHandler(esp_http_client_event_t *evt) {
+
+	int httpResponseCode = 0;
+
     switch(evt->event_id) {
         case HTTP_EVENT_ERROR:
             // ESP_LOGI(TAG, "HTTP_EVENT_ERROR");
@@ -36,9 +39,17 @@ esp_err_t elasticHTTPEventHandler(esp_http_client_event_t *evt) {
             // printf("%.*s", evt->data_len, (char*)evt->data);
             break;
         case HTTP_EVENT_ON_DATA:
-            // ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
 
-            if (!esp_http_client_is_chunked_response(evt->client)) {
+			httpResponseCode = esp_http_client_get_status_code(evt->client);
+
+            ESP_LOGD(TAG, "HTTP_EVENT_ON_DATA, code=%d, len=%d", httpResponseCode, evt->data_len);
+
+            if ( (httpResponseCode < 200) || (httpResponseCode > 299) ) {
+            	ESP_LOGE(TAG, "%.*s", evt->data_len, (char*)evt->data);
+			}
+
+
+            // if (!esp_http_client_is_chunked_response(evt->client)) {
 
             	// printf("%.*s", evt->data_len, (char*)evt->data);
 
@@ -91,7 +102,7 @@ esp_err_t elasticHTTPEventHandler(esp_http_client_event_t *evt) {
 // 				if (response) {
 // 					cJSON_Delete(response);
 // 				}
-            }
+            // }
 
             break;
         case HTTP_EVENT_ON_FINISH:
@@ -112,12 +123,21 @@ static void elasticTask(void *arg){
 
     size_t nvsLength;
 
-    char url[MAX_CONFIG_STRING_LENGTH];
+    char url[MAX_CONFIG_STRING_LENGTH + 16];
     nvsLength = sizeof(url);
 	nvs_get_str(nvsHandle, "elasticURL", url, &nvsLength);
 
 	unsigned int port;
 	nvs_get_u32(nvsHandle, "elasticPort", &port);
+
+	char uniqueName[16];
+	nvsLength = sizeof(uniqueName);
+	nvs_get_str(nvsHandle, "uniqueName", uniqueName, &nvsLength);
+
+	strcat(url, "/beeline_");
+	strcat(url, uniqueName);
+	strcat(url, "/router");
+
 
 	nvs_close(nvsHandle);
 
@@ -149,6 +169,12 @@ static void elasticTask(void *arg){
 
 			cJSON_AddItemToObject(request, elasticMessage.name, cJSON_CreateNumber(elasticMessage.value));
 
+			cJSON_AddItemToObject(request, "name", cJSON_CreateString(elasticMessage.name));
+
+			cJSON_AddItemToObject(request, "value", cJSON_CreateNumber(elasticMessage.value));
+
+			cJSON_AddItemToObject(request, "deviceName", cJSON_CreateString(uniqueName));
+
 			localtime_r(&elasticMessage.time, &timeinfo);
 
 			char timestamp[64] = "";
@@ -176,11 +202,14 @@ static void elasticTask(void *arg){
 
 			if (err == ESP_OK) {
 
+				int httpResponseCode = 0;
+				httpResponseCode = esp_http_client_get_status_code(client);
+
 				ESP_LOGI(TAG, "N: %s, V: %f, D: %s -> Elastic. HTTP Status %d, Response Length: %d.\n",
 					elasticMessage.name,
 					elasticMessage.value,
 					timestamp,
-					esp_http_client_get_status_code(client),
+					httpResponseCode,
                 	esp_http_client_get_content_length(client)
 				);
 			}

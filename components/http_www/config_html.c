@@ -6,6 +6,7 @@ extern const char  configHTMLEnd[]		asm("_binary_config_html_end");
 const ssiTag_t ssiTags[] = {
 	{"wifiSSID", 		SSI_TYPE_TEXT},
 	{"wifiPassword",	SSI_TYPE_PASSWORD},
+	{"uniqueName", 		SSI_TYPE_TEXT},
 	{"mqttHost", 		SSI_TYPE_TEXT},
 	{"mqttPort", 		SSI_TYPE_INTEGER},
 	{"mqttKeepalive",	SSI_TYPE_INTEGER},

@@ -130,19 +130,18 @@ static void mqttConnectionTask(void *arg){
 	unsigned int keepalive;
 	nvs_get_u32(nvsHandle, "mqttKeepalive", &keepalive);
 
+	char uniqueName[16];
+	nvsLength = sizeof(uniqueName);
+	nvs_get_str(nvsHandle, "uniqueName", uniqueName, &nvsLength);
+
 	nvs_close(nvsHandle);
 
 	ESP_LOGI(TAG, "Got MQTT host details...\n");
 
-	uint8_t mac[6];
-    char id_string[16];
-    esp_read_mac(mac, ESP_MAC_WIFI_STA);
-    sprintf(id_string, "%02x%02X%02X", mac[3], mac[4], mac[5]);
-
 	esp_mqtt_client_config_t mqtt_cfg = {
         .host = host,
         .port = port,
-        .client_id = id_string,
+        .client_id = uniqueName,
         .username = username,
         .password = password,
         .keepalive = keepalive,
@@ -169,8 +168,8 @@ static void mqttConnectionTask(void *arg){
 		if (xQueueReceive(mqttConnectionMessageQueue, &mqttConnectionMessage, 4000 / portTICK_RATE_MS)){
 
 			char mqttTopic[64];
-			strcpy(mqttTopic, "beeline/out/");
-			strcat(mqttTopic, id_string);
+			strcpy(mqttTopic, "beeline_");
+			strcat(mqttTopic, uniqueName);
 			strcat(mqttTopic, "/");
 			strcat(mqttTopic, mqttConnectionMessage.topic);
 
