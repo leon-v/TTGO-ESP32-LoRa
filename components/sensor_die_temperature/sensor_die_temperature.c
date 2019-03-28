@@ -26,67 +26,6 @@ esp_adc_cal_characteristics_t *adc_chars = NULL;
 
 unsigned char disaplyLine = 0;
 
-// reverses a string 'str' of length 'len'
-void reverse(char *str, int len)
-{
-    int i=0, j=len-1, temp;
-    while (i<j)
-    {
-        temp = str[i];
-        str[i] = str[j];
-        str[j] = temp;
-        i++; j--;
-    }
-}
-
- // Converts a given integer x to string str[].  d is the number
- // of digits required in output. If d is more than the number
- // of digits in x, then 0s are added at the beginning.
-int intToStr(int x, char str[], int d)
-{
-    int i = 0;
-    while (x)
-    {
-        str[i++] = (x%10) + '0';
-        x = x/10;
-    }
-
-    // If number of digits required is more, then
-    // add 0s at the beginning
-    while (i < d)
-        str[i++] = '0';
-
-    reverse(str, i);
-    str[i] = '\0';
-    return i;
-}
-
-// Converts a floating point number to string.
-void ftoa(float n, char *res, int afterpoint)
-{
-    // Extract integer part
-    int ipart = (int)n;
-
-    // Extract floating part
-    float fpart = n - (float)ipart;
-
-    // convert integer part to string
-    int i = intToStr(ipart, res, 0);
-
-    // check for display option after point
-    if (afterpoint != 0)
-    {
-        res[i] = '.';  // add dot
-
-        // Get the value of fraction part upto given no.
-        // of points after dot. The third parameter is needed
-        // to handle cases like 233.007
-        fpart = fpart * pow(10, afterpoint);
-
-        intToStr((int)fpart, res + i + 1, afterpoint);
-    }
-}
-
 int sensorDieTemperatureRead (void) {
     SET_PERI_REG_BITS(SENS_SAR_MEAS_WAIT2_REG, SENS_FORCE_XPD_SAR, 3, SENS_FORCE_XPD_SAR_S);
     SET_PERI_REG_BITS(SENS_SAR_TSENS_CTRL_REG, SENS_TSENS_CLK_DIV, 10, SENS_TSENS_CLK_DIV_S);
@@ -103,13 +42,18 @@ int sensorDieTemperatureRead (void) {
 
 void sensorDieTemperatureSendMessage(char * sensor, float value) {
 
-	char valueString[32];
-	ftoa(value, valueString, 1);
+	char valueString[32] = {0};
+	sprintf(valueString, "%.2f", value);
 
 	ssd1306Text_t ssd1306Text;
 	ssd1306Text.line = disaplyLine++;
 
-	char disaplyMessage[32];
+	char disaplyMessage[64] = {0};
+	ssd1306Text.text = disaplyMessage;
+
+	strcpy(disaplyMessage, "                    ");
+	ssd1306SetText(&ssd1306Text);
+
 	strcpy(disaplyMessage, sensor);
 	strcat(disaplyMessage, ": ");
 	strcat(disaplyMessage, valueString);
@@ -140,7 +84,7 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 float readADC(adc1_channel_t channel) {
 
 	float result = 0.00;
-	int count = 1000;
+	int count = 10000;
 
 	for (int i = 0; i < count; i++) {
 		// result+= esp_adc_cal_raw_to_voltage(adc1_get_raw(channel), adc_chars);
@@ -188,7 +132,7 @@ static void sensorDieTemperatureTask(void *arg){
 
 
 
-		strcpy(sensor, "DieHall");
+		strcpy(sensor, "HallSensor");
 
 		float hall = hall_sensor_read();
 
@@ -196,7 +140,7 @@ static void sensorDieTemperatureTask(void *arg){
 
 
 
-		strcpy(sensor, "ADC10");
+		strcpy(sensor, "Battery");
 
 		adc1_config_width(ADC_WIDTH_BIT_12);
 		adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);

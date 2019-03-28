@@ -20,6 +20,8 @@ Source code from https://github.com/yanbe/ssd1306-esp-idf-i2c
 
 #define tag "SSD1306"
 
+unsigned char ssd1306Ready = 0;
+
 void ssd1306PinsInit() {
 
 	gpio_config_t io_conf;
@@ -70,6 +72,7 @@ void ssd1306ModuleInit() {
 	espRc = i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
 	if (espRc == ESP_OK) {
 		ESP_LOGI(tag, "OLED configured successfully");
+		ssd1306Ready = 1;
 	} else {
 		ESP_LOGE(tag, "OLED configuration failed. code: 0x%.2X", espRc);
 	}
@@ -77,6 +80,12 @@ void ssd1306ModuleInit() {
 }
 
 void ssd1306TaskDisplayPattern(void *ignore) {
+
+	if (!ssd1306Ready){
+		vTaskDelete(NULL);
+		return;
+	}
+
 	i2c_cmd_handle_t cmd;
 
 	for (uint8_t i = 0; i < 8; i++) {
@@ -98,9 +107,14 @@ void ssd1306TaskDisplayPattern(void *ignore) {
 }
 
 void ssd1306CLS(void) {
+
+	if (!ssd1306Ready){
+		return;
+	}
+
 	i2c_cmd_handle_t cmd;
 
-	uint8_t zero[128];
+	uint8_t zero[128] = {0};
 	for (uint8_t i = 0; i < 8; i++) {
 		cmd = i2c_cmd_link_create();
 		i2c_master_start(cmd);
@@ -118,6 +132,12 @@ void ssd1306CLS(void) {
 
 
 void ssd1306TaskContrast(void *ignore) {
+
+	if (!ssd1306Ready){
+		vTaskDelete(NULL);
+		return;
+	}
+
 	i2c_cmd_handle_t cmd;
 
 	uint8_t contrast = 0;
@@ -142,6 +162,13 @@ void ssd1306TaskContrast(void *ignore) {
 }
 
 void ssd1306TaskScroll(void *ignore) {
+
+	if (!ssd1306Ready){
+		vTaskDelete(NULL);
+		return;
+	}
+
+
 	esp_err_t espRc;
 
 	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -178,6 +205,11 @@ void ssd1306TaskScroll(void *ignore) {
 
 void ssd1306SetTextLine(uint8_t cur_page) {
 
+	if (!ssd1306Ready){
+		return;
+	}
+
+
 	i2c_cmd_handle_t cmd;
 
 	cmd = i2c_cmd_link_create();
@@ -196,6 +228,11 @@ void ssd1306SetTextLine(uint8_t cur_page) {
 
 void ssd1306PutCharacter(uint8_t character) {
 
+	if (!ssd1306Ready){
+		return;
+	}
+
+
 	i2c_cmd_handle_t cmd;
 
 	cmd = i2c_cmd_link_create();
@@ -212,11 +249,11 @@ void ssd1306PutCharacter(uint8_t character) {
 
 void ssd1306SetText(ssd1306Text_t * ssd1306Text) {
 
-	ESP_LOGI(tag, "Setting Line %d", ssd1306Text->line);
+	if (!ssd1306Ready) {
+		return;
+	}
 
 	ssd1306SetTextLine(ssd1306Text->line);
-
-	ESP_LOGI(tag, "Setting String %s", ssd1306Text->text);
 
 	uint8_t text_len = strlen(ssd1306Text->text);
 
@@ -226,6 +263,12 @@ void ssd1306SetText(ssd1306Text_t * ssd1306Text) {
 }
 
 void ssd1306TaskDisplayText(const void *arg_text) {
+
+	if (!ssd1306Ready){
+		vTaskDelete(NULL);
+		return;
+	}
+
 
 	char *text = (char*)arg_text;
 	uint8_t text_len = strlen(text);

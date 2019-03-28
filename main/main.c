@@ -2,6 +2,7 @@
 #include <nvs.h>
 #include <string.h>
 #include <driver/gpio.h>
+#include <esp_log.h>
 
 //#include "beeline.h"
 
@@ -20,6 +21,8 @@
 // #include "os.h"
 // #include "sys/param.h"
 // #include "crypto/base64.h"
+
+static const char *TAG = "Main";
 
 void app_main(void) {
 
@@ -42,9 +45,25 @@ void app_main(void) {
 
 	if (espError == ESP_ERR_NVS_NOT_FOUND){
 		uint8_t mac[6];
-	    char id_string[16];
+	    char id_string[8] = {0};
 	    esp_read_mac(mac, ESP_MAC_WIFI_STA);
-	    sprintf(id_string, "%02x%02X%02X", mac[3], mac[4], mac[5]);
+
+	    id_string[0] = 'a' + ((mac[3] >> 0) & 0x0F);
+	    id_string[1] = 'a' + ((mac[3] >> 4) & 0x0F);
+	    id_string[2] = 'a' + ((mac[4] >> 0) & 0x0F);
+	    id_string[3] = 'a' + ((mac[4] >> 4) & 0x0F);
+	    id_string[4] = 'a' + ((mac[5] >> 0) & 0x0F);
+	    id_string[5] = 'a' + ((mac[5] >> 4) & 0x0F);
+	    id_string[6] = 0;
+
+	    ESP_LOGE(TAG, "id_string %s, B:%d, 1:%d, 2:%d, A1:%d, A2:%d",
+	    	id_string,
+	    	mac[3],
+	    	((mac[3] >> 0) & 0x0F),
+	    	((mac[3] >> 4) & 0x0F),
+	    	id_string[0],
+	    	id_string[1]
+	    );
 
 		ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "uniqueName", id_string));
 		ESP_ERROR_CHECK(nvs_commit(nvsHandle));
@@ -60,24 +79,32 @@ void app_main(void) {
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
 
-    printf("Waiting for GIO0 to go low to start config mode....\n");
-    int counter = 100;
-    while ( (counter > 0) && (gpio_get_level(0)) ) {
+    int counter = 200;
 
-    	vTaskDelay(10 / portTICK_PERIOD_MS);
-    	// printf("Loop %d\n", counter);
+    if (gpio_get_level(0)){
 
-    	counter--;
-    }
+    	ESP_LOGI(TAG, "Waiting for GIO0 to go low to start config mode");
+	    while ( (counter > 0) && (gpio_get_level(0)) ) {
+
+	    	vTaskDelay(10 / portTICK_PERIOD_MS);
+	    	// printf("Loop %d\n", counter);
+
+	    	counter--;
+	    }
+	}
+	else{
+		ESP_LOGE(TAG, "GPIO0 Low before pin check, skipping config check.");
+		counter = 0;
+	}
 
 
     if (!counter){
-    	printf("Starting in normal mode.\n");
+    	ESP_LOGI(TAG, "Starting in normal mode.\n");
     	wifiClientInit();
     }
     else{
 
-    	printf("Starting in config mode. Erasing all NVS settings.\n");
+    	ESP_LOGI(TAG, "Starting in config mode. Erasing all NVS settings.\n");
     	// Reset all NVS data so we always get known values and don't crash
     	wifiClientResetNVS();
     	mqttConnectionResetNVS();
