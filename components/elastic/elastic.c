@@ -167,11 +167,14 @@ static void elasticTask(void *arg){
 			cJSON * request;
 			request = cJSON_CreateObject();
 
-			cJSON_AddItemToObject(request, elasticMessage.name, cJSON_CreateNumber(elasticMessage.value));
+			char valueString[16] = {0};
+			sprintf(valueString, "%.2f", elasticMessage.value);
+
+			cJSON_AddItemToObject(request, elasticMessage.name, cJSON_CreateRaw(valueString));
 
 			cJSON_AddItemToObject(request, "name", cJSON_CreateString(elasticMessage.name));
 
-			cJSON_AddItemToObject(request, "value", cJSON_CreateNumber(elasticMessage.value));
+			cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
 
 			cJSON_AddItemToObject(request, "deviceName", cJSON_CreateString(uniqueName));
 

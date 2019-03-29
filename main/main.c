@@ -17,12 +17,51 @@
 // #include "radio.h"
 #include "datetime.h"
 #include "ssd1306.h"
+#include "lora.h"
 
 // #include "os.h"
 // #include "sys/param.h"
 // #include "crypto/base64.h"
 
 static const char *TAG = "Main";
+
+void task_tx(void *p){
+
+	esp_err_t espError;
+
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
+
+	size_t nvsLength;
+
+	char uniqueName[32] = {0};
+	nvsLength = sizeof(uniqueName);
+	espError = nvs_get_str(nvsHandle, "uniqueName", uniqueName, &nvsLength);
+
+	char message[32] = {0};
+	while(1){
+		strcpy(message, "Hello from ");
+		strcat(message, uniqueName);
+		vTaskDelay(pdMS_TO_TICKS(5000));
+		lora_send_packet( (uint8_t *) message, strlen(message));
+		ESP_LOGI("Main LORA", "packet sent...%s", message);
+	}
+}
+
+uint8_t buf[32];
+void task_rx(void *p) {
+	int length;
+	for(;;) {
+		lora_receive();    // put into receive mode
+		while(lora_received()) {
+			length = lora_receive_packet(buf, sizeof(buf));
+			buf[length] = 0;
+			ESP_LOGE("Main LORA", "Received: %s", buf);
+			lora_receive();
+		}
+		vTaskDelay(2);
+	}
+}
 
 void app_main(void) {
 
@@ -126,4 +165,11 @@ void app_main(void) {
     dateTimeInit();
 
     sensorDieTemperatureInit();
+
+	lora_init();
+	lora_set_frequency(915e6);
+	lora_enable_crc();
+	xTaskCreate(&task_tx, "task_tx", 2048, NULL, 5, NULL);
+	xTaskCreate(&task_rx, "task_rx", 2048, NULL, 5, NULL);
 }
+
