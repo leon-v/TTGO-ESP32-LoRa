@@ -35,7 +35,7 @@ typedef union{
 
 int radioGetPacketLength(radioPacket_t * radioPacket){
 
-	int length = 0;
+	int length = 5;
 	length+= sizeof(radioPacket->type);
 
 	switch (radioPacket->type) {
