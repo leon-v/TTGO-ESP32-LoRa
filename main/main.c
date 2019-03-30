@@ -17,7 +17,7 @@
 // #include "radio.h"
 #include "datetime.h"
 #include "ssd1306.h"
-#include "lora.h"
+#include "radio.h"
 
 // #include "os.h"
 // #include "sys/param.h"
@@ -25,47 +25,17 @@
 
 static const char *TAG = "Main";
 
-void task_tx(void *p){
-
-	esp_err_t espError;
-
-	nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
-
-	size_t nvsLength;
-
-	char uniqueName[32] = {0};
-	nvsLength = sizeof(uniqueName);
-	espError = nvs_get_str(nvsHandle, "uniqueName", uniqueName, &nvsLength);
-
-	char message[32] = {0};
-	while(1){
-		strcpy(message, "Hello from ");
-		strcat(message, uniqueName);
-		vTaskDelay(pdMS_TO_TICKS(5000));
-		lora_send_packet( (uint8_t *) message, strlen(message));
-		ESP_LOGI("Main LORA", "packet sent...%s", message);
-	}
-}
-
-uint8_t buf[32];
-void task_rx(void *p) {
-	int length;
-	for(;;) {
-		lora_receive();    // put into receive mode
-		while(lora_received()) {
-			length = lora_receive_packet(buf, sizeof(buf));
-			buf[length] = 0;
-			ESP_LOGE("Main LORA", "Received: %s", buf);
-			lora_receive();
-		}
-		vTaskDelay(2);
-	}
-}
-
 void app_main(void) {
 
+	ssd1306Init();
+
 	esp_err_t espError;
+	ssd1306Text_t disaply;
+	disaply.line = 0;
+
+	strcpy(disaply.text, "Booting...");
+	ssd1306QueueText(&disaply);
+
 
     //Initialize NVS
 	espError = nvs_flash_init();
@@ -118,32 +88,27 @@ void app_main(void) {
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
 
-    int counter = 200;
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    if (gpio_get_level(0)){
-
-    	ESP_LOGI(TAG, "Waiting for GIO0 to go low to start config mode");
-	    while ( (counter > 0) && (gpio_get_level(0)) ) {
-
-	    	vTaskDelay(10 / portTICK_PERIOD_MS);
-	    	// printf("Loop %d\n", counter);
-
-	    	counter--;
-	    }
-	}
-	else{
-		ESP_LOGE(TAG, "GPIO0 Low before pin check, skipping config check.");
-		counter = 0;
-	}
+    strcpy(disaply.text, "Hold PRG for config mode.");
+    ssd1306QueueText(&disaply);
+    ESP_LOGW(TAG, "%s", disaply.text);
 
 
-    if (!counter){
-    	ESP_LOGI(TAG, "Starting in normal mode.\n");
-    	wifiClientInit();
-    }
-    else{
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-    	ESP_LOGI(TAG, "Starting in config mode. Erasing all NVS settings.\n");
+    int configMode = 0;
+
+    configMode = !gpio_get_level(0);
+
+    if (configMode){
+
+    	strcpy(disaply.text, "Starting in config mode.");
+
+    	ssd1306QueueText(&disaply);
+
+    	ESP_LOGW(TAG, "%s", disaply.text);
+
     	// Reset all NVS data so we always get known values and don't crash
     	wifiClientResetNVS();
     	mqttConnectionResetNVS();
@@ -152,24 +117,25 @@ void app_main(void) {
 
     	wifiAccessPointInit();
     }
+    else{
 
-    ssd1306Init();
+    	strcpy(disaply.text, "Starting in normal mode.");
+    	ssd1306QueueText(&disaply);
+
+    	ESP_LOGW(TAG, "%s", disaply.text);
+    	wifiClientInit();
+    }
 
     httpServerInit();
+
+    radioInit();
+
     mqttConnectionInit();
 
     elasticInit();
 
-    // radioInit();
-
     dateTimeInit();
 
     sensorDieTemperatureInit();
-
-	lora_init();
-	lora_set_frequency(915e6);
-	lora_enable_crc();
-	xTaskCreate(&task_tx, "task_tx", 2048, NULL, 5, NULL);
-	xTaskCreate(&task_rx, "task_rx", 2048, NULL, 5, NULL);
 }
 

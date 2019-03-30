@@ -48,18 +48,11 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	ssd1306Text_t ssd1306Text;
 	ssd1306Text.line = disaplyLine++;
 
-	char disaplyMessage[64] = {0};
-	ssd1306Text.text = disaplyMessage;
+	strcpy(ssd1306Text.text, sensor);
+	strcat(ssd1306Text.text, ": ");
+	strcat(ssd1306Text.text, valueString);
 
-	strcpy(disaplyMessage, "                    ");
-	ssd1306SetText(&ssd1306Text);
-
-	strcpy(disaplyMessage, sensor);
-	strcat(disaplyMessage, ": ");
-	strcat(disaplyMessage, valueString);
-	ssd1306Text.text = disaplyMessage;
-
-	ssd1306SetText(&ssd1306Text);
+	ssd1306QueueText(&ssd1306Text);
 
 	mqttConnectionMessage_t mqttConnectionMessage;
 

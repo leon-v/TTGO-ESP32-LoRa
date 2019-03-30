@@ -35,4 +35,11 @@ config SCK_GPIO
     help
 	Pin Number to be used as the SCK SPI signal.
 
+config IRQ_GPIO
+    int "IRQ GPIO"
+    range 0 35
+    default 26
+    help
+	Pin Number to be used as the IRQ signal.
+
 endmenu
