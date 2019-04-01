@@ -10,6 +10,8 @@
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
 #include <time.h>
+#include <nvs_flash.h>
+#include <esp_system.h>
 
 
 #include "rom/ets_sys.h"
@@ -18,6 +20,8 @@
 
 static const char *TAG = "Sensor";
 
+#include "message.h"
+#include "radio.h"
 #include "mqtt_connection.h"
 #include "elastic.h"
 #include "ssd1306.h"
@@ -41,6 +45,8 @@ int sensorDieTemperatureRead (void) {
 
 
 void sensorDieTemperatureSendMessage(char * sensor, float value) {
+	message_t message;
+	esp_err_t espError;
 
 	char valueString[32] = {0};
 	sprintf(valueString, "%.2f", value);
@@ -54,6 +60,24 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 
 	ssd1306QueueText(&ssd1306Text);
 
+	// Set device unique ID
+    nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
+
+	size_t nvsLength = sizeof(message.deviceName);
+	espError = nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
+
+	nvs_close(nvsHandle);
+
+	strcpy(message.sensorName, sensor);
+
+	message.valueType = MESSAGE_FLOAT;
+	message.floatValue = value;
+
+	xQueueSend(radioGetQueue(), &message, 0);
+
+
+	/*
 	mqttConnectionMessage_t mqttConnectionMessage;
 
 	strcpy(mqttConnectionMessage.topic, sensor);
@@ -72,6 +96,7 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	if (uxQueueSpacesAvailable(getSlasticMessageQueue())) {
 		xQueueSend(getSlasticMessageQueue(), &elasticMessage, 0);
 	}
+	*/
 }
 
 float readADC(adc1_channel_t channel) {
@@ -101,19 +126,14 @@ static void sensorDieTemperatureTask(void *arg){
 
 		vTaskDelay(2); // Delay for 2 ticks to allow scheduler time to execute
 
-		eventBits = xEventGroupWaitBits(getMQTTConnectionEventGroup(), MQTT_CONNECTED_BIT, false, true, 4000 / portTICK_RATE_MS);
-
 		ESP_LOGI(TAG, "Wait ended\n");
-
-		if (!(eventBits & MQTT_CONNECTED_BIT)) {
-			continue;
-		}
 
 		vTaskDelay(2000 / portTICK_RATE_MS); // Delay for 2 ticks to allow scheduler time to execute
 
 		ESP_LOGI(TAG, "Wait was connected\n");
 
 		disaplyLine = 0;
+
 
 		strcpy(sensor, "DieTemperature");
 
@@ -147,5 +167,5 @@ static void sensorDieTemperatureTask(void *arg){
 
 void sensorDieTemperatureInit(void) {
 
-	xTaskCreate(&sensorDieTemperatureTask, "sensorDieTemperature", 4096, NULL, 13, NULL);
+	// xTaskCreate(&sensorDieTemperatureTask, "sensorDieTemperature", 4096, NULL, 13, NULL);
 }

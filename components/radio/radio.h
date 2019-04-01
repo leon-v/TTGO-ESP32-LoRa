@@ -2,5 +2,6 @@
 #define __RADIO_H_
 
 void radioInit(void);
+xQueueHandle radioGetQueue(void);
 
 #endif
