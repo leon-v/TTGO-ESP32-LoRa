@@ -3,22 +3,24 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
+#include <freertos/event_groups.h>
 #include <esp_log.h>
 
 #include "wifi.h"
 #include "http.h"
 #include "mqtt_connection.h"
+#include "message.h"
 
 esp_mqtt_client_handle_t client;
 
-static xQueueHandle mqttConnectionMessageQueue = NULL;
+static xQueueHandle mqttConnectionQueue = NULL;
 
 static EventGroupHandle_t mqttConnectionEventGroup;
 
 static const char *TAG = "MQTT";
 
-xQueueHandle getMQTTConnectionMessageQueue(void){
-	return mqttConnectionMessageQueue;
+xQueueHandle getMqttConnectionQueue(void){
+	return mqttConnectionQueue;
 }
 
 EventGroupHandle_t getMQTTConnectionEventGroup(void){
@@ -39,7 +41,7 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
 			// strcpy(beelineMessage.sensor, "TestSensor");
 			// strcpy(beelineMessage.value, "TestValue");
 
-			// xQueueSend(mqttConnectionMessageQueue, &beelineMessage, 0);
+			// xQueueSend(mqttConnectionQueue, &beelineMessage, 0);
 
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
             msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 0);
@@ -112,18 +114,18 @@ static void mqttConnectionTask(void *arg){
 
     size_t nvsLength;
 
-    char host[MAX_CONFIG_STRING_LENGTH];
+    char host[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
     nvsLength = sizeof(host);
 	nvs_get_str(nvsHandle, "mqttHost", host, &nvsLength);
 
 	unsigned int port;
 	nvs_get_u32(nvsHandle, "mqttPort", &port);
 
-	char username[MAX_CONFIG_STRING_LENGTH];
+	char username[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
 	nvsLength = sizeof(username);
 	nvs_get_str(nvsHandle, "mqttUsername", username, &nvsLength);
 
-	char password[MAX_CONFIG_STRING_LENGTH];
+	char password[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
 	nvsLength = sizeof(password);
 	nvs_get_str(nvsHandle, "mqttPassword", password, &nvsLength);
 
@@ -164,18 +166,38 @@ static void mqttConnectionTask(void *arg){
 			continue;
 		}
 
-		mqttConnectionMessage_t mqttConnectionMessage;
-		if (xQueueReceive(mqttConnectionMessageQueue, &mqttConnectionMessage, 4000 / portTICK_RATE_MS)){
+		message_t message;
+		if (xQueueReceive(mqttConnectionQueue, &message, 4000 / portTICK_RATE_MS)){
 
-			char mqttTopic[64];
-			strcpy(mqttTopic, "beeline_");
-			strcat(mqttTopic, uniqueName);
+			char mqttTopic[sizeof(message.deviceName) + sizeof(message.sensorName) + 1] = {0};
+			char mqttValue[sizeof(message.stringValue)] = {0};
+
+			strcpy(mqttTopic, message.deviceName);
 			strcat(mqttTopic, "/");
-			strcat(mqttTopic, mqttConnectionMessage.topic);
+			strcat(mqttTopic, message.sensorName);
+
+			switch (message.valueType){
+
+				case MESSAGE_INT:
+					sprintf(mqttValue, "%d", message.intValue);
+				break;
+
+				case MESSAGE_FLOAT:
+					sprintf(mqttValue, "%.4f", message.floatValue);
+				break;
+
+				case MESSAGE_DOUBLE:
+					sprintf(mqttValue, "%.8f", message.doubleValue);
+				break;
+
+				case MESSAGE_STRING:
+					sprintf(mqttValue, "%s", message.stringValue);
+				break;
+			}
 
 			int msg_id;
-			msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttConnectionMessage.value, 0, 1, 0);
-			ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttConnectionMessage.topic, mqttConnectionMessage.value, msg_id);
+			msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
+			ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttTopic, mqttValue, msg_id);
 			ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
 		}
 	}
@@ -186,7 +208,7 @@ void mqttConnectionInit(void){
 
 	mqttConnectionEventGroup = xEventGroupCreate();
 
-	mqttConnectionMessageQueue = xQueueCreate(4, sizeof(mqttConnectionMessage_t));
+	mqttConnectionQueue = xQueueCreate(4, sizeof(message_t));
 
 	xTaskCreate(&mqttConnectionTask, "mqttConnection", 4096, NULL, 13, NULL);
 }

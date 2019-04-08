@@ -3,12 +3,6 @@
 
 void elasticInit(void);
 void elasticResetNVS(void);
-xQueueHandle getSlasticMessageQueue(void);
-
-typedef struct{
-	char name[32];
-	float value;
-	time_t time;
-} elasticMessage_t;
+xQueueHandle elasticGetQueue(void);
 
 #endif

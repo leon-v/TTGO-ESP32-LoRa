@@ -5,14 +5,22 @@
 #include <string.h>
 #include <driver/gpio.h>
 #include <esp_log.h>
+#include <crypto/crypto.h>
 
 #include "message.h"
 #include "lora.h"
 #include "radio.h"
 
+#include "elastic.h"
+#include "mqtt_connection.h"
+
 #define TAG "Radio"
 
 static xQueueHandle radioQueue = NULL;
+
+char loraKey[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
+void * aesEncryptContext;
+void * aesDecryptionContext;
 
 xQueueHandle radioGetQueue(void){
 	return radioQueue;
@@ -161,6 +169,17 @@ void radioLoraRx(void) {
 			break;
 		}
 
+		/* Send message to elastic */
+		if (uxQueueSpacesAvailable(elasticGetQueue())) {
+			xQueueSend(elasticGetQueue(), &message, 0);
+		}
+
+		/* Send message to mqtt */
+		if (uxQueueSpacesAvailable(getMqttConnectionQueue())) {
+			xQueueSend(getMqttConnectionQueue(), &message, 0);
+		}
+
+
 		lora_receive();
 	}
 }
@@ -171,11 +190,12 @@ void radioTask(void * arg){
 
 	while (1){
 
+		radioLoraRx();
+
 		if (xQueueReceive(radioQueue, &message, 2)) {
 			radioLoRaSendRadioMessage(&message);
 		}
 
-		radioLoraRx();
 	}
 
 	vTaskDelete(NULL);
@@ -183,11 +203,39 @@ void radioTask(void * arg){
 
 void radioInit(void){
 
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	size_t nvsLength;
+    nvsLength = sizeof(loraKey);
+	nvs_get_str(nvsHandle, "loraKey", loraKey, &nvsLength);
+
+	unsigned int loraFrequency;
+	nvs_get_u32(nvsHandle, "loraFrequency", &loraFrequency);
+
+	aesEncryptContext = aes_encrypt_init( (unsigned char *) loraKey, strlen(loraKey));
+	aesDecryptionContext = aes_decrypt_init( (unsigned char *) loraKey, strlen(loraKey));
+
 	lora_init();
-	lora_set_frequency(915e6);
+	lora_set_frequency(loraFrequency);
 	lora_enable_crc();
 
 	radioQueue = xQueueCreate(4, sizeof(message_t));
 
-	xTaskCreate(&radioTask, "radioTask", 4096, NULL, 5, NULL);
+	xTaskCreate(&radioTask, "radioTask", 4096, NULL, 10, NULL);
+}
+
+
+void radioResetNVS(void){
+
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
+
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "loraKey", "Encryption Key"));
+	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
+
+	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "loraFrequency", 915000000));
+	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
+
+	nvs_close(nvsHandle);
 }

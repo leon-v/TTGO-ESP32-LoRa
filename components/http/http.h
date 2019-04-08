@@ -32,7 +32,6 @@ esp_err_t httpGetPost(httpd_req_t *req, char * postString, unsigned int postStri
 
 #define MAX_HTTP_SSI_KEY_LENGTH 32
 #define MAX_HTTP_SSI_VALUE_LENGTH 128
-#define MAX_CONFIG_STRING_LENGTH 128
 
 char * httpServerGetTokenValue(tokens_t * tokens, const char * key);
 

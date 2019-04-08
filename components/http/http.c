@@ -183,7 +183,7 @@ void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileE
 			}
 
 
-			char nvsStringValue[MAX_CONFIG_STRING_LENGTH];
+			char nvsStringValue[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
 			size_t nvsLength = sizeof(nvsStringValue);
 			unsigned long int nvsIntValue;
 

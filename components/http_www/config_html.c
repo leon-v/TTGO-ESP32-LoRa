@@ -12,6 +12,8 @@ const ssiTag_t ssiTags[] = {
 	{"mqttKeepalive",	SSI_TYPE_INTEGER},
 	{"mqttUsername", 	SSI_TYPE_TEXT},
 	{"mqttPassword", 	SSI_TYPE_PASSWORD},
+	{"loraFrequency",	SSI_TYPE_INTEGER},
+	{"loraKey",			SSI_TYPE_TEXT},
 	{"elasticURL", 		SSI_TYPE_TEXT},
 	{"dateTimeNTPHost",	SSI_TYPE_TEXT}
 };

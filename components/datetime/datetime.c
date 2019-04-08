@@ -1,6 +1,4 @@
 #include <string.h>
-#include <time.h>
-#include <sys/time.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -15,11 +13,13 @@
 #include "wifi.h"
 #include "datetime.h"
 
-#define MAX_CONFIG_STRING_LENGTH 128
-
 static EventGroupHandle_t datetimeEventGroup;
 
 static const char *TAG = "datetime";
+
+EventGroupHandle_t dateTimeGetEventGroup(void){
+	return datetimeEventGroup;
+}
 
 static void dateTimeTask(void *arg){
 
@@ -32,7 +32,7 @@ static void dateTimeTask(void *arg){
 
     size_t nvsLength;
 
-	char dateTimeNTPHost[MAX_CONFIG_STRING_LENGTH];
+	char dateTimeNTPHost[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
     nvsLength = sizeof(dateTimeNTPHost);
 	nvs_get_str(nvsHandle, "dateTimeNTPHost", dateTimeNTPHost, &nvsLength);
 

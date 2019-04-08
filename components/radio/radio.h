@@ -3,5 +3,6 @@
 
 void radioInit(void);
 xQueueHandle radioGetQueue(void);
+void radioResetNVS(void);
 
 #endif

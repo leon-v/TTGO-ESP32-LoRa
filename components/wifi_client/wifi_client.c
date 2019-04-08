@@ -1,27 +1,9 @@
 #include <esp_wifi.h>
 #include <nvs.h>
-#include <esp_pm.h>
 
 #include "wifi.h"
 
-#define MAX_CONFIG_STRING_LENGTH 32
-
 void wifiClientInit(void) {
-
-
-	// #if CONFIG_PM_ENABLE
-	//     // Configure dynamic frequency scaling:
-	//     // maximum and minimum frequencies are set in sdkconfig,
-	//     // automatic light sleep is enabled if tickless idle support is enabled.
-	//     esp_pm_config_esp32_t pm_config = {
-	//             .max_freq_mhz = 240,
-	//             .min_freq_mhz = 80,
-	// 	#if CONFIG_FREERTOS_USE_TICKLESS_IDLE
-	//             .light_sleep_enable = true
-	// 	#endif
- //    	};
- //    	ESP_ERROR_CHECK( esp_pm_configure(&pm_config) );
-	// #endif // CONFIG_PM_ENABLE
 
 	wifiInit();
 
@@ -42,10 +24,10 @@ void wifiClientInit(void) {
 
 	size_t nvsLength;
 
-	nvsLength = MAX_CONFIG_STRING_LENGTH;
+	nvsLength = CONFIG_HTTP_NVS_MAX_STRING_LENGTH;
 	nvs_get_str(nvsHandle, "wifiSSID", (char *) wifi_config.sta.ssid, &nvsLength);
 
-    nvsLength = MAX_CONFIG_STRING_LENGTH;
+    nvsLength = CONFIG_HTTP_NVS_MAX_STRING_LENGTH;
     nvs_get_str(nvsHandle, "wifiPassword", (char *) wifi_config.sta.password, &nvsLength);
 
     nvs_close(nvsHandle);
@@ -54,7 +36,7 @@ void wifiClientInit(void) {
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    // esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
+    esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
 
     printf ("WiFI connect to ap \n");
 }

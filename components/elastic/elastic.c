@@ -1,7 +1,5 @@
 #include <nvs.h>
 #include <esp_log.h>
-#include <sys/time.h>
-#include <time.h>
 #include <string.h>
 
 #include "wifi.h"
@@ -9,15 +7,14 @@
 #include "datetime.h"
 #include "cJSON.h"
 #include "elastic.h"
+#include "message.h"
 
 #define TAG "ElasticHTTP"
 
-#define MAX_CONFIG_STRING_LENGTH 128
+static xQueueHandle elasticQueue = NULL;
 
-static xQueueHandle elasticMessageQueue = NULL;
-
-xQueueHandle getSlasticMessageQueue(void){
-	return elasticMessageQueue;
+xQueueHandle elasticGetQueue(void){
+	return elasticQueue;
 }
 
 esp_err_t elasticHTTPEventHandler(esp_http_client_event_t *evt) {
@@ -123,7 +120,7 @@ static void elasticTask(void *arg){
 
     size_t nvsLength;
 
-    char url[MAX_CONFIG_STRING_LENGTH + 16];
+    char url[CONFIG_HTTP_NVS_MAX_STRING_LENGTH + 16];
     nvsLength = sizeof(url);
 	nvs_get_str(nvsHandle, "elasticURL", url, &nvsLength);
 
@@ -159,26 +156,51 @@ static void elasticTask(void *arg){
 			continue;
 		}
 
-		elasticMessage_t elasticMessage;
-		// elasticMessage_t
+		message_t message;
+		// message_t
 
-		if (xQueueReceive(elasticMessageQueue, &elasticMessage, 1000 / portTICK_RATE_MS)) {
+		if (xQueueReceive(elasticQueue, &message, 4000 / portTICK_RATE_MS)) {
 
 			cJSON * request;
 			request = cJSON_CreateObject();
 
+			cJSON_AddItemToObject(request, "deviceName", cJSON_CreateString(message.deviceName));
+
+			cJSON_AddItemToObject(request, "sensorName", cJSON_CreateString(message.sensorName));
+
+			char deviceSensorName[sizeof(message.deviceName) + sizeof(message.sensorName)];
+			strcpy(deviceSensorName, message.deviceName);
+			strcat(deviceSensorName, "/");
+			strcpy(deviceSensorName, message.sensorName);
+
 			char valueString[16] = {0};
-			sprintf(valueString, "%.2f", elasticMessage.value);
+			switch (message.valueType){
+				case MESSAGE_INT:
+					cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateNumber(message.intValue));
+					cJSON_AddItemToObject(request, "value", cJSON_CreateNumber(message.intValue));
+				break;
 
-			cJSON_AddItemToObject(request, elasticMessage.name, cJSON_CreateRaw(valueString));
+				case MESSAGE_FLOAT:
+					sprintf(valueString, "%.4f", message.floatValue);
+					cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateRaw(valueString));
+					cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
+				break;
 
-			cJSON_AddItemToObject(request, "name", cJSON_CreateString(elasticMessage.name));
+				case MESSAGE_DOUBLE:
+					sprintf(valueString, "%.8f", message.doubleValue);
+					cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateRaw(valueString));
+					cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
+				break;
 
-			cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
+				case MESSAGE_STRING:
+					cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateString(message.stringValue));
+					cJSON_AddItemToObject(request, "value", cJSON_CreateString(message.stringValue));
+				break;
+			}
 
-			cJSON_AddItemToObject(request, "deviceName", cJSON_CreateString(uniqueName));
-
-			localtime_r(&elasticMessage.time, &timeinfo);
+			time_t now;
+			time(&now);
+			localtime_r(&now, &timeinfo);
 
 			char timestamp[64] = "";
     		strftime(timestamp, sizeof(timestamp), "%Y/%m/%d %H:%M:%S", &timeinfo);
@@ -209,8 +231,8 @@ static void elasticTask(void *arg){
 				httpResponseCode = esp_http_client_get_status_code(client);
 
 				// ESP_LOGI(TAG, "N: %s, V: %.2f, D: %s -> Elastic. HTTP Status %d, Response Length: %d.\n",
-				// 	elasticMessage.name,
-				// 	elasticMessage.value,
+				// 	message.name,
+				// 	message.value,
 				// 	timestamp,
 				// 	httpResponseCode,
     //             	esp_http_client_get_content_length(client)
@@ -229,7 +251,7 @@ static void elasticTask(void *arg){
 
 void elasticInit(void) {
 
-	elasticMessageQueue = xQueueCreate(4, sizeof(elasticMessage_t));
+	elasticQueue = xQueueCreate(4, sizeof(message_t));
 
 	xTaskCreate(&elasticTask, "elasticTask", 8192, NULL, 13, NULL);
 }

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <driver/gpio.h>
 #include <esp_log.h>
+#include <esp_pm.h>
 
 //#include "beeline.h"
 
@@ -114,6 +115,7 @@ void app_main(void) {
     	mqttConnectionResetNVS();
     	elasticResetNVS();
     	datTimeResetNVS();
+    	radioResetNVS();
 
     	wifiAccessPointInit();
     }
@@ -126,15 +128,29 @@ void app_main(void) {
     	wifiClientInit();
     }
 
+    #if CONFIG_PM_ENABLE
+	    // Configure dynamic frequency scaling:
+	    // maximum and minimum frequencies are set in sdkconfig,
+	    // automatic light sleep is enabled if tickless idle support is enabled.
+	    esp_pm_config_esp32_t pm_config = {
+	            .max_freq_mhz = CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ,
+	            .min_freq_mhz = CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ,
+		#if CONFIG_FREERTOS_USE_TICKLESS_IDLE
+	            .light_sleep_enable = true
+		#endif
+    	};
+    	ESP_ERROR_CHECK( esp_pm_configure(&pm_config) );
+	#endif // CONFIG_PM_ENABLE
+
     httpServerInit();
 
     radioInit();
 
-    mqttConnectionInit();
+    // mqttConnectionInit();
 
-    elasticInit();
+    // elasticInit();
 
-    dateTimeInit();
+    // dateTimeInit();
 
     sensorDieTemperatureInit();
 }

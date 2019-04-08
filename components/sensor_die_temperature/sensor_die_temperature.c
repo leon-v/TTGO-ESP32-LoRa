@@ -9,10 +9,8 @@
 #include <math.h>
 #include <driver/adc.h>
 #include <esp_adc_cal.h>
-#include <time.h>
 #include <nvs_flash.h>
 #include <esp_system.h>
-
 
 #include "rom/ets_sys.h"
 #include "soc/rtc_cntl_reg.h"
@@ -21,9 +19,11 @@
 static const char *TAG = "Sensor";
 
 #include "message.h"
+
 #include "radio.h"
 #include "mqtt_connection.h"
 #include "elastic.h"
+
 #include "ssd1306.h"
 
 esp_adc_cal_characteristics_t *adc_chars = NULL;
@@ -48,6 +48,9 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	message_t message;
 	esp_err_t espError;
 
+	/*
+	Show on display
+	*/
 	char valueString[32] = {0};
 	sprintf(valueString, "%.2f", value);
 
@@ -59,6 +62,10 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	strcat(ssd1306Text.text, valueString);
 
 	ssd1306QueueText(&ssd1306Text);
+
+	/*
+	Prepare message
+	*/
 
 	// Set device unique ID
     nvs_handle nvsHandle;
@@ -74,29 +81,13 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	message.valueType = MESSAGE_FLOAT;
 	message.floatValue = value;
 
-	xQueueSend(radioGetQueue(), &message, 0);
-
 
 	/*
-	mqttConnectionMessage_t mqttConnectionMessage;
-
-	strcpy(mqttConnectionMessage.topic, sensor);
-	strcpy(mqttConnectionMessage.value, valueString);
-
-	if (uxQueueSpacesAvailable(getMQTTConnectionMessageQueue())) {
-		xQueueSend(getMQTTConnectionMessageQueue(), &mqttConnectionMessage, 0);
-	}
-
-	elasticMessage_t elasticMessage;
-
-	strcpy(elasticMessage.name, sensor);
-	elasticMessage.value = value;
-	time(&elasticMessage.time);
-
-	if (uxQueueSpacesAvailable(getSlasticMessageQueue())) {
-		xQueueSend(getSlasticMessageQueue(), &elasticMessage, 0);
-	}
+	Send message to radio
 	*/
+	if (uxQueueSpacesAvailable(radioGetQueue())) {
+		xQueueSend(radioGetQueue(), &message, 0);
+	}
 }
 
 float readADC(adc1_channel_t channel) {
@@ -118,54 +109,33 @@ float readADC(adc1_channel_t channel) {
 static void sensorDieTemperatureTask(void *arg){
 
 	EventBits_t eventBits;
-	char sensor[32];
+
+	ESP_LOGI(TAG, "task start\n");
 
 	while(1) {
 
-		ESP_LOGI(TAG, "task start\n");
-
-		vTaskDelay(2); // Delay for 2 ticks to allow scheduler time to execute
-
-		ESP_LOGI(TAG, "Wait ended\n");
-
-		vTaskDelay(2000 / portTICK_RATE_MS); // Delay for 2 ticks to allow scheduler time to execute
-
-		ESP_LOGI(TAG, "Wait was connected\n");
+		vTaskDelay(5000 / portTICK_RATE_MS);
 
 		disaplyLine = 0;
 
-
-		strcpy(sensor, "DieTemperature");
-
 		int temperature = sensorDieTemperatureRead();
 		float celcius = (temperature  - 32) / 1.8;
+		sensorDieTemperatureSendMessage("DieTemperature", celcius);
 
-
-		sensorDieTemperatureSendMessage(sensor, celcius);
-
-
-
-		strcpy(sensor, "HallSensor");
 
 		float hall = hall_sensor_read();
+		sensorDieTemperatureSendMessage("HallSensor", hall);
 
-		sensorDieTemperatureSendMessage(sensor, hall);
-
-
-
-		strcpy(sensor, "Battery");
 
 		adc1_config_width(ADC_WIDTH_BIT_12);
 		adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
 		float adc11 = readADC(ADC1_CHANNEL_0) * 2;
 
-		sensorDieTemperatureSendMessage(sensor, adc11);
+		sensorDieTemperatureSendMessage("Battery", adc11);
 	}
 }
 
 
-
 void sensorDieTemperatureInit(void) {
-
-	// xTaskCreate(&sensorDieTemperatureTask, "sensorDieTemperature", 4096, NULL, 13, NULL);
+	xTaskCreate(&sensorDieTemperatureTask, "sensorDieTemperature", 4096, NULL, 10, NULL);
 }
