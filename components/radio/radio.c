@@ -170,7 +170,7 @@ void radioDecrypt(unsigned char * buffer, int * length){
 
 		aes_decrypt(aesDecryptContext, bufferPointer, tempBuffer);
 
-		memcpy(tempBuffer, bufferPointer, BLOCK_LENGTH);
+		memcpy(bufferPointer, tempBuffer, BLOCK_LENGTH);
 
 		bufferPointer+= BLOCK_LENGTH;
 	}
