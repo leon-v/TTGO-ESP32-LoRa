@@ -64,16 +64,28 @@
 		    			<th>Frequency</th>
 		    			<td><div class="input"><!--#loraFrequency--></div></td>
 		    		</tr>
+		    		<tr class="roundTop">
+		    			<th>TX Sync Word</th>
+		    			<td><div class="input"><!--#loraTXSyncWord--></div></td>
+		    		</tr>
+		    		<tr class="roundTop">
+		    			<th>RX Sync Word</th>
+		    			<td><div class="input"><!--#loraRXSyncWord--></div></td>
+		    		</tr>
 		    		<tr class="roundBotton">
 		    			<th>Encryption Key</th>
-		    			<td><div class="input"><!--#loraKey--></div></td>
+		    			<td>
+		    				<div class="input" maxlength="16"><!--#loraKey--></div>
+		    				<p class="info">Must be 16 characters or less.</p>
+		    			</td>
+
 		    		</tr>
 
 
 		    		<tr>
 		    			<th colspan="2"><h4>Elastic Search Configuration</h4></th>
 		    		</tr>
-		    		<tr class="roundTop">
+		    		<tr class="roundTop roundBotton">
 		    			<th>URL</th>
 		    			<td>
 		    				<div class="input"><!--#elasticURL--></div>

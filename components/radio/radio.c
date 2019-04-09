@@ -6,6 +6,7 @@
 #include <driver/gpio.h>
 #include <esp_log.h>
 #include <crypto/crypto.h>
+#include <math.h>
 
 #include "message.h"
 #include "lora.h"
@@ -18,9 +19,12 @@
 
 static xQueueHandle radioQueue = NULL;
 
-char loraKey[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
-void * aesEncryptContext;
-void * aesDecryptionContext;
+char loraKey[CONFIG_HTTP_NVS_MAX_STRING_LENGTH] = {0};
+static void * aesEncryptContext;
+static void * aesDecryptContext;
+
+static unsigned int loraTXSyncWord;
+static unsigned int loraRXSyncWord;
 
 xQueueHandle radioGetQueue(void){
 	return radioQueue;
@@ -118,6 +122,62 @@ int radioCreateBuffer(unsigned char * radioBuffer, message_t * message) {
 	return bytes - radioBuffer;
 }
 
+#define BLOCK_LENGTH 16
+
+void radioEncrypt(unsigned char * buffer, int * length){
+
+	if (!aesEncryptContext) {
+		return;
+	}
+
+	int blocks = ceil( (float) * length / BLOCK_LENGTH);
+	int remaining = * length;
+	unsigned char tempBuffer[BLOCK_LENGTH];
+	unsigned char * bufferPointer = buffer;
+	int blockStringLength;
+
+	for (int i = 0; i < blocks; i++) {
+
+		if (BLOCK_LENGTH > remaining){
+			blockStringLength = remaining;
+		}
+		else{
+			blockStringLength = BLOCK_LENGTH;
+		}
+
+		memcpy(tempBuffer, bufferPointer, blockStringLength);
+
+		aes_encrypt(aesEncryptContext, tempBuffer, bufferPointer);
+
+		bufferPointer+= BLOCK_LENGTH;
+		remaining-= blockStringLength;
+	}
+
+	*length = (blocks * BLOCK_LENGTH);
+}
+
+void radioDecrypt(unsigned char * buffer, int * length){
+
+	if (!aesDecryptContext) {
+		return;
+	}
+
+	int blocks = ceil( (float) * length / BLOCK_LENGTH);
+	unsigned char tempBuffer[BLOCK_LENGTH];
+	unsigned char * bufferPointer = buffer;
+
+	for (int i = 0; i < blocks; i++) {
+
+		aes_decrypt(aesDecryptContext, bufferPointer, tempBuffer);
+
+		memcpy(tempBuffer, bufferPointer, BLOCK_LENGTH);
+
+		bufferPointer+= BLOCK_LENGTH;
+	}
+
+	*length = strlen( (char *) buffer);
+}
+
 void radioLoRaSendRadioMessage(message_t * message){
 	int length;
 
@@ -125,13 +185,36 @@ void radioLoRaSendRadioMessage(message_t * message){
 
 	length = radioCreateBuffer(radioBuffer, message);
 
-	printf("TX: ");
+	printf("TX R %d: ", length);
 	for (int i = 0; i < length; i++) {
 		printf("%c", (char) radioBuffer[i]);
 	}
 	printf("\n");
 
+	radioEncrypt(radioBuffer, &length);
+
+	printf("TX R-E %d: ", length);
+	for (int i = 0; i < length; i++) {
+		printf("%c", (char) radioBuffer[i]);
+	}
+	printf("\n");
+
+
+	lora_set_sync_word( (unsigned char) loraTXSyncWord);
 	lora_send_packet(radioBuffer, length);
+
+	radioDecrypt(radioBuffer, length);
+
+	printf("TX R-E-R %d: ", length);
+	for (int i = 0; i < length; i++) {
+		printf("%c", (char) radioBuffer[i]);
+	}
+	printf("\n");
+}
+
+void radioLoraSetRx(void) {
+	lora_set_sync_word( (unsigned char) loraRXSyncWord);
+	lora_receive();    // put into receive mode
 }
 
 void radioLoraRx(void) {
@@ -139,12 +222,20 @@ void radioLoraRx(void) {
 	unsigned char radioBuffer[sizeof(message_t)];
 	message_t message;
 
-	lora_receive();    // put into receive mode
+	radioLoraSetRx();
 	while(lora_received()) {
 
 		length = lora_receive_packet(radioBuffer, sizeof(radioBuffer));
 
-		printf("RX: ");
+		printf("RX E %d: ", length);
+		for (int i = 0; i < length; i++) {
+			printf("%c", (char) radioBuffer[i]);
+		}
+		printf("\n");
+
+		radioEncrypt(radioBuffer, &length);
+
+		printf("RX D %d: ", length);
 		for (int i = 0; i < length; i++) {
 			printf("%c", (char) radioBuffer[i]);
 		}
@@ -179,8 +270,7 @@ void radioLoraRx(void) {
 			xQueueSend(getMqttConnectionQueue(), &message, 0);
 		}
 
-
-		lora_receive();
+		radioLoraSetRx();
 	}
 }
 
@@ -213,8 +303,21 @@ void radioInit(void){
 	unsigned int loraFrequency;
 	nvs_get_u32(nvsHandle, "loraFrequency", &loraFrequency);
 
+	nvs_get_u32(nvsHandle, "loraTXSyncWord", &loraTXSyncWord);
+	nvs_get_u32(nvsHandle, "loraRXSyncWord", &loraRXSyncWord);
+
+	ESP_LOGI(TAG, "Setting key %s", loraKey);
 	aesEncryptContext = aes_encrypt_init( (unsigned char *) loraKey, strlen(loraKey));
-	aesDecryptionContext = aes_decrypt_init( (unsigned char *) loraKey, strlen(loraKey));
+
+	if (!aesEncryptContext){
+		ESP_LOGE(TAG, "aes_encrypt_init failed");
+	}
+
+	aesDecryptContext = aes_decrypt_init( (unsigned char *) loraKey, strlen(loraKey));
+
+	if (!aesDecryptContext){
+		ESP_LOGE(TAG, "aes_encrypt_init failed");
+	}
 
 	lora_init();
 	lora_set_frequency(loraFrequency);
@@ -235,6 +338,12 @@ void radioResetNVS(void){
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "loraFrequency", 915000000));
+	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
+
+	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "loraTXSyncWord", 190));
+	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
+
+	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "loraRXSyncWord", 191));
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);
