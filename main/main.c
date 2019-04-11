@@ -146,11 +146,11 @@ void app_main(void) {
 
     radioInit();
 
-    // mqttConnectionInit();
+    mqttConnectionInit();
 
-    // elasticInit();
+    elasticInit();
 
-    // dateTimeInit();
+    dateTimeInit();
 
     sensorDieTemperatureInit();
 }

@@ -16,6 +16,7 @@
 #include "mqtt_connection.h"
 
 #define TAG "Radio"
+#define ENC_TEST_CHAR 0xAB
 
 static xQueueHandle radioQueue = NULL;
 
@@ -30,6 +31,32 @@ xQueueHandle radioGetQueue(void){
 	return radioQueue;
 }
 
+void radioPrintBuffer(const char * tag, unsigned char * buffer, int length){
+
+	printf("%s: %d: ", tag, length);
+	for (int i = 0; i < length; i++) {
+		printf("%c|", (char) buffer[i]);
+	}
+	printf("\n");
+}
+
+void radioShift(unsigned char * buffer, int amount, int * length){
+
+
+	if (amount > 0){
+		for (int i = * length + amount; i > 0; i--){
+			buffer[i] = buffer[i - amount];
+		}
+	}
+	else if (amount < 0) {
+
+		for (int i = 0; i < * length; i++){
+			buffer[i] = buffer[i + -amount];
+		}
+	}
+
+	* length = * length + amount;
+}
 
 void radioCreateMessage(message_t * message, unsigned char * radioBuffer, int bufferLength) {
 
@@ -130,86 +157,56 @@ void radioEncrypt(unsigned char * buffer, int * length){
 		return;
 	}
 
+	radioShift(buffer, 1, length);
+	buffer[0] = ENC_TEST_CHAR;
+
 	int blocks = ceil( (float) * length / BLOCK_LENGTH);
-	int remaining = * length;
-	unsigned char tempBuffer[BLOCK_LENGTH];
-	unsigned char * bufferPointer = buffer;
-	int blockStringLength;
 
 	for (int i = 0; i < blocks; i++) {
 
-		if (BLOCK_LENGTH > remaining){
-			blockStringLength = remaining;
-		}
-		else{
-			blockStringLength = BLOCK_LENGTH;
-		}
-
-		memcpy(tempBuffer, bufferPointer, blockStringLength);
-
-		aes_encrypt(aesEncryptContext, tempBuffer, bufferPointer);
-
-		bufferPointer+= BLOCK_LENGTH;
-		remaining-= blockStringLength;
+		int offset = i * BLOCK_LENGTH;
+		aes_encrypt(aesEncryptContext, buffer + offset, buffer + offset);
 	}
 
 	*length = (blocks * BLOCK_LENGTH);
 }
 
-void radioDecrypt(unsigned char * buffer, int * length){
+int radioDecrypt(unsigned char * buffer, int * length){
 
 	if (!aesDecryptContext) {
-		return;
+		return 0;
 	}
 
 	int blocks = ceil( (float) * length / BLOCK_LENGTH);
-	unsigned char tempBuffer[BLOCK_LENGTH];
-	unsigned char * bufferPointer = buffer;
 
 	for (int i = 0; i < blocks; i++) {
 
-		aes_decrypt(aesDecryptContext, bufferPointer, tempBuffer);
-
-		memcpy(bufferPointer, tempBuffer, BLOCK_LENGTH);
-
-		bufferPointer+= BLOCK_LENGTH;
+		int offset = i * BLOCK_LENGTH;
+		aes_decrypt(aesDecryptContext, buffer + offset, buffer + offset);
 	}
 
-	*length = strlen( (char *) buffer);
+	if (buffer[0] != ENC_TEST_CHAR){
+		return 0;
+	}
+
+	radioShift(buffer, -1, length);
+
+	return 1;
 }
 
 void radioLoRaSendRadioMessage(message_t * message){
 	int length;
 
-	unsigned char radioBuffer[sizeof(message_t)];
+	unsigned char buffer[sizeof(message_t)] = {0};
+	memset(buffer, 0, sizeof(message_t));
 
-	length = radioCreateBuffer(radioBuffer, message);
+	length = radioCreateBuffer(buffer, message);
 
-	printf("TX R %d: ", length);
-	for (int i = 0; i < length; i++) {
-		printf("%c", (char) radioBuffer[i]);
-	}
-	printf("\n");
-
-	radioEncrypt(radioBuffer, &length);
-
-	printf("TX R-E %d: ", length);
-	for (int i = 0; i < length; i++) {
-		printf("%c", (char) radioBuffer[i]);
-	}
-	printf("\n");
-
+	radioEncrypt(buffer, &length);
 
 	lora_set_sync_word( (unsigned char) loraTXSyncWord);
-	lora_send_packet(radioBuffer, length);
 
-	radioDecrypt(radioBuffer, length);
-
-	printf("TX R-E-R %d: ", length);
-	for (int i = 0; i < length; i++) {
-		printf("%c", (char) radioBuffer[i]);
-	}
-	printf("\n");
+	lora_send_packet(buffer, length);
 }
 
 void radioLoraSetRx(void) {
@@ -219,56 +216,53 @@ void radioLoraSetRx(void) {
 
 void radioLoraRx(void) {
 	int length;
-	unsigned char radioBuffer[sizeof(message_t)];
+	unsigned char buffer[sizeof(message_t)];
 	message_t message;
 
 	radioLoraSetRx();
 	while(lora_received()) {
 
-		length = lora_receive_packet(radioBuffer, sizeof(radioBuffer));
+		length = sizeof(message_t);
+		length = lora_receive_packet(buffer, length);
 
-		printf("RX E %d: ", length);
-		for (int i = 0; i < length; i++) {
-			printf("%c", (char) radioBuffer[i]);
+		int success = radioDecrypt(buffer, &length);
+
+		if (!success) {
+			ESP_LOGE(TAG, "Failed to decrypt packet.");
+			continue;
 		}
-		printf("\n");
 
-		radioEncrypt(radioBuffer, &length);
+		radioCreateMessage(&message, buffer, length);
 
-		printf("RX D %d: ", length);
-		for (int i = 0; i < length; i++) {
-			printf("%c", (char) radioBuffer[i]);
-		}
-		printf("\n");
-
-		radioCreateMessage(&message, radioBuffer, length);
-
-		ESP_LOGE(TAG, "LoRa heard |%s|%s|%d|%d", message.deviceName, message.sensorName, message.valueType, length);
+		ESP_LOGI(TAG, "LoRa heard |%s|%s|%d|%d", message.deviceName, message.sensorName, message.valueType, length);
 
 		switch(message.valueType){
 			case MESSAGE_INT:
-				ESP_LOGE(TAG, "Value: %d", message.intValue);
+				ESP_LOGI(TAG, "Value: %d", message.intValue);
 			break;
 			case MESSAGE_FLOAT:
-				ESP_LOGE(TAG, "Value: %f", message.floatValue);
+				ESP_LOGI(TAG, "Value: %f", message.floatValue);
 			break;
 			case MESSAGE_DOUBLE:
-				ESP_LOGE(TAG, "Value: %f", message.doubleValue);
+				ESP_LOGI(TAG, "Value: %f", message.doubleValue);
 			break;
 			case MESSAGE_STRING:
-				ESP_LOGE(TAG, "Value: %s", message.stringValue);
+				ESP_LOGI(TAG, "Value: %s", message.stringValue);
 			break;
 		}
 
-		/* Send message to elastic */
+		// Send message to elastic
 		if (uxQueueSpacesAvailable(elasticGetQueue())) {
+			ESP_LOGI(TAG, "Sending to elastic");
 			xQueueSend(elasticGetQueue(), &message, 0);
 		}
 
-		/* Send message to mqtt */
+		// Send message to mqtt
 		if (uxQueueSpacesAvailable(getMqttConnectionQueue())) {
+			ESP_LOGI(TAG, "Sending to MQTT");
 			xQueueSend(getMqttConnectionQueue(), &message, 0);
 		}
+
 
 		radioLoraSetRx();
 	}
@@ -348,3 +342,11 @@ void radioResetNVS(void){
 
 	nvs_close(nvsHandle);
 }
+
+/*
+
+25: work1 staticTest       A
+31: wwrr1 staticTest       A
+
+
+*/

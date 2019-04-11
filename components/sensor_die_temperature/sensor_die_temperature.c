@@ -82,9 +82,7 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	message.floatValue = value;
 
 
-	/*
-	Send message to radio
-	*/
+	//Send message to radio
 	if (uxQueueSpacesAvailable(radioGetQueue())) {
 		xQueueSend(radioGetQueue(), &message, 0);
 	}
@@ -114,18 +112,23 @@ static void sensorDieTemperatureTask(void *arg){
 
 	while(1) {
 
-		vTaskDelay(5000 / portTICK_RATE_MS);
-
 		disaplyLine = 0;
+
+
+		vTaskDelay(2000 / portTICK_RATE_MS);
 
 		int temperature = sensorDieTemperatureRead();
 		float celcius = (temperature  - 32) / 1.8;
 		sensorDieTemperatureSendMessage("DieTemperature", celcius);
 
 
+		vTaskDelay(2000 / portTICK_RATE_MS);
+
 		float hall = hall_sensor_read();
 		sensorDieTemperatureSendMessage("HallSensor", hall);
 
+
+		vTaskDelay(2000 / portTICK_RATE_MS);
 
 		adc1_config_width(ADC_WIDTH_BIT_12);
 		adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
@@ -137,5 +140,5 @@ static void sensorDieTemperatureTask(void *arg){
 
 
 void sensorDieTemperatureInit(void) {
-	xTaskCreate(&sensorDieTemperatureTask, "sensorDieTemperature", 4096, NULL, 10, NULL);
+	// xTaskCreate(&sensorDieTemperatureTask, "sensorDieTemperature", 4096, NULL, 10, NULL);
 }
