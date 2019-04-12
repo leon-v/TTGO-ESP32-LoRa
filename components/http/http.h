@@ -5,7 +5,8 @@
 typedef enum {
 	SSI_TYPE_TEXT = 0,
     SSI_TYPE_PASSWORD,
-    SSI_TYPE_INTEGER
+    SSI_TYPE_INTEGER,
+    SSI_TYPE_CHECKBOX
 } ssiTagType_t;
 
 typedef struct{
@@ -31,7 +32,7 @@ char * httpServerParseValues(tokens_t * tokens, char * buffer, const char * rowD
 esp_err_t httpGetPost(httpd_req_t *req, char * postString, unsigned int postStringLength);
 
 #define MAX_HTTP_SSI_KEY_LENGTH 32
-#define MAX_HTTP_SSI_VALUE_LENGTH 128
+#define MAX_HTTP_SSI_VALUE_LENGTH 384
 
 char * httpServerGetTokenValue(tokens_t * tokens, const char * key);
 

@@ -1,10 +1,9 @@
 
 #include <nvs.h>
-
 #include <sys/param.h>
-
 #include <esp_http_server.h>
 #include <http_parser.h>
+#include <esp_log.h>
 
 #include "http.h"
 
@@ -13,8 +12,14 @@
 
 #include "index_html.h"
 #include "config_html.h"
+#include "config_lora_html.h"
+#include "config_wifi_html.h"
+#include "config_mqtt_html.h"
+
 #include "javascript_js.h"
 #include "style_css.h"
+
+#define TAG "http"
 
 void httpServerURLDecode(char * input, int length) {
 
@@ -185,7 +190,8 @@ void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileE
 
 			char nvsStringValue[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
 			size_t nvsLength = sizeof(nvsStringValue);
-			unsigned long int nvsIntValue;
+			uint32_t nvsIntValue;
+			uint8_t nvsCharValue;
 
 			switch (ssiTag.type) {
 
@@ -202,9 +208,26 @@ void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileE
 				break;
 
 				case SSI_TYPE_INTEGER:
-					nvs_get_u32(nvsHandle, ssiTag.key, (uint32_t *) &nvsIntValue);
+					nvs_get_u32(nvsHandle, ssiTag.key, &nvsIntValue);
 					itoa(nvsIntValue, nvsStringValue, 10);
 					sprintf(replaceSSIValue, "<input type=\"number\" name=\"%s\" value=\"%s\" />", ssiTag.key, nvsStringValue);
+				break;
+
+				case SSI_TYPE_CHECKBOX:
+					nvs_get_u8(nvsHandle, ssiTag.key, &nvsCharValue);
+					if (nvsCharValue > 0) {
+						strcpy(nvsStringValue, "checked");
+					}
+					else{
+						strcpy(nvsStringValue, "");
+					}
+					sprintf(replaceSSIValue, "\
+							<input type=\"hidden\" id=\"_%s\" name=\"%s\" value=\"%d\">\
+							<input type=\"checkbox\" id=\"%s\" onchange=\"document.getElementById('_%s').value = this.checked?1:0;\" %s>\
+						",
+						ssiTag.key, ssiTag.key, nvsCharValue,
+						ssiTag.key, ssiTag.key, nvsStringValue
+					);
 				break;
 			}
 
@@ -272,6 +295,10 @@ void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bufferLen
 			case SSI_TYPE_INTEGER:
 				ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, ssiTag.key, atoi(value)));
 			break;
+
+			case SSI_TYPE_CHECKBOX:
+				ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, ssiTag.key, atoi(value)));
+			break;
 		}
 
 
@@ -313,6 +340,8 @@ httpd_handle_t start_webserver(void) {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
 
+    config.max_uri_handlers = 16;
+
     // Start the httpd server
     printf("http: Starting server on port: '%d'", config.server_port);
     httpd_handle_t server;
@@ -321,11 +350,17 @@ httpd_handle_t start_webserver(void) {
         // Set URI handlers
         printf("http: Registering URI handlers");
 
+        httpPageJavascriptJSInit(server);
+        httpPageStyleCSSInit(server);
+
         httpPageIndexHTMLInit(server);
         httpPageConfigHTMLInit(server);
 
-        httpPageJavascriptJSInit(server);
-        httpPageStyleCSSInit(server);
+        httpPageConfigLoRaHTMLInit(server);
+        httpPageConfigWiFiHTMLInit(server);
+        httpPageConfigMQTTHTMLInit(server);
+
+
 
 
         return server;

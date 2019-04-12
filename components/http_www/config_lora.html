@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Beeline MQTT - LoRa Configuration</title>
+		<link href="./style.css" rel="stylesheet" type="text/css">
+		<script type="text/javascript" src="/javascript.js"></script>
+	</head>
+	<body >
+		<h1>Beeline MQTT - LoRa Configuration</h1>
+		<form action="" method="post">
+		    <table class="table">
+		    	<tbody>
+
+		    		<tr class="roundTop">
+		    			<th>Frequency</th>
+		    			<td><div class="input"><!--#loraFrequency--></div></td>
+		    		</tr>
+
+		    		<tr class="roundTop">
+		    			<th>TX Sync Word</th>
+		    			<td><div class="input"><!--#loraTXSyncWord--></div></td>
+		    		</tr>
+
+		    		<tr class="roundTop">
+		    			<th>RX Sync Word</th>
+		    			<td><div class="input"><!--#loraRXSyncWord--></div></td>
+		    		</tr>
+
+		    		<tr class="roundBotton">
+		    			<th>Encryption Key</th>
+		    			<td>
+		    				<div class="input" maxlength="16"><!--#loraKey--></div>
+		    				<p class="info">Must be 16 characters or less.</p>
+		    			</td>
+		    		</tr>
+
+		    		<tr class="roundBotton">
+		    			<th>Message Routing</th>
+		    			<td>
+		    				<!--#loraToMQTT-->
+		    				<label for="loraToMQTT">Forward to MQTT</label><br>
+		    				<!--#loraToElastic-->
+		    				<label for="loraToElastic">Forward to Elasticsearch</label><br>
+		    				<!--#loraToLoRa-->
+		    				<label for="loraToElastic">Forward to LoRa</label><br>
+		    			</td>
+		    		</tr>
+
+		    		<tr>
+						<th>&nbsp;</th>
+		    			<th colspan="2"><button>Save Settings</button></th>
+		    		</tr>
+
+		    	</tbody>
+		    </table>
+	    </form>
+	</body>
+</html>
