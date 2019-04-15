@@ -12,9 +12,6 @@
 #include "lora.h"
 #include "radio.h"
 
-#include "elastic.h"
-#include "mqtt_connection.h"
-
 #define TAG "Radio"
 #define ENC_TEST_CHAR 0xAB
 
@@ -26,10 +23,6 @@ static void * aesDecryptContext;
 
 static unsigned int loraTXSyncWord;
 static unsigned int loraRXSyncWord;
-
-xQueueHandle radioGetQueue(void){
-	return radioQueue;
-}
 
 void radioPrintBuffer(const char * tag, unsigned char * buffer, int length){
 
@@ -219,9 +212,6 @@ void radioLoraRx(void) {
 	unsigned char buffer[sizeof(message_t)];
 	message_t message;
 
-	nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
-
 	radioLoraSetRx();
 	while(lora_received()) {
 
@@ -254,44 +244,18 @@ void radioLoraRx(void) {
 			break;
 		}
 
-		// Send message to elastic
-		unsigned char loraToElastic;
-		nvs_get_u8(nvsHandle, "loraToElastic", &loraToElastic);
-
-		if (loraToElastic){
-			if (uxQueueSpacesAvailable(elasticGetQueue())) {
-				ESP_LOGI(TAG, "Sending to elastic");
-				xQueueSend(elasticGetQueue(), &message, 0);
-			}
-		}
-
-		// Send message to mqtt
-		unsigned char loraToMQTT;
-		nvs_get_u8(nvsHandle, "loraToMQTT", &loraToMQTT);
-
-		if (loraToMQTT) {
-			if (uxQueueSpacesAvailable(getMqttConnectionQueue())) {
-				ESP_LOGI(TAG, "Sending to MQTT");
-				xQueueSend(getMqttConnectionQueue(), &message, 0);
-			}
-		}
-
-		// Send message to mqtt
-		unsigned char loraToLoRa;
-		nvs_get_u8(nvsHandle, "loraToLoRa", &loraToLoRa);
-
-		if (loraToLoRa) {
-			if (uxQueueSpacesAvailable(radioGetQueue())) {
-				ESP_LOGI(TAG, "Sending to LoRa");
-				xQueueSend(radioGetQueue(), &message, 0);
-			}
-		}
+		messageIn(&message, "lora");
 
 		radioLoraSetRx();
 	}
-
-	nvs_close(nvsHandle);
 }
+
+void radioLoRaQueueAdd(message_t * message){
+	if (uxQueueSpacesAvailable(radioQueue)) {
+		xQueueSend(radioQueue, &message, 0);
+	}
+}
+
 
 void radioTask(void * arg){
 
@@ -364,6 +328,8 @@ void radioResetNVS(void){
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);
+
+	messageNVSReset("lora");
 }
 
 /*

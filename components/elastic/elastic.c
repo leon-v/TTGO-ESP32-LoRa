@@ -13,10 +13,6 @@
 
 static xQueueHandle elasticQueue = NULL;
 
-xQueueHandle elasticGetQueue(void){
-	return elasticQueue;
-}
-
 esp_err_t elasticHTTPEventHandler(esp_http_client_event_t *evt) {
 
 	int httpResponseCode = 0;
@@ -249,6 +245,12 @@ static void elasticTask(void *arg){
 
 }
 
+void elasticQueueAdd(message_t * message){
+	if (uxQueueSpacesAvailable(elasticQueue)) {
+		xQueueSend(elasticQueue, &message, 0);
+	}
+}
+
 void elasticInit(void) {
 
 	elasticQueue = xQueueCreate(4, sizeof(message_t));
@@ -265,4 +267,6 @@ void elasticResetNVS(void) {
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);
+
+	messageNVSReset("elastic");
 }

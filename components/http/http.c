@@ -8,16 +8,18 @@
 #include "http.h"
 
 #include "wifi.h"
-// #include "beeline.h"
-
-#include "index_html.h"
-#include "config_html.h"
-#include "config_lora_html.h"
-#include "config_wifi_html.h"
-#include "config_mqtt_html.h"
 
 #include "javascript_js.h"
 #include "style_css.h"
+
+#include "index_html.h"
+#include "config_device_html.h"
+#include "config_lora_html.h"
+#include "config_wifi_html.h"
+#include "config_mqtt_html.h"
+#include "config_elasticsearch_html.h"
+#include "config_ntp_html.h"
+
 
 #define TAG "http"
 
@@ -354,11 +356,13 @@ httpd_handle_t start_webserver(void) {
         httpPageStyleCSSInit(server);
 
         httpPageIndexHTMLInit(server);
-        httpPageConfigHTMLInit(server);
 
         httpPageConfigLoRaHTMLInit(server);
         httpPageConfigWiFiHTMLInit(server);
         httpPageConfigMQTTHTMLInit(server);
+        httpPageConfigElasticsearchHTMLInit(server);
+        httpPageConfigNTPHTMLInit(server);
+        httpPageConfigDeviceHTMLInit(server);
 
 
 

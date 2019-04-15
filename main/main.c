@@ -116,6 +116,7 @@ void app_main(void) {
     	elasticResetNVS();
     	datTimeResetNVS();
     	radioResetNVS();
+    	dieSensorsResetNVS();
 
     	wifiAccessPointInit();
     }

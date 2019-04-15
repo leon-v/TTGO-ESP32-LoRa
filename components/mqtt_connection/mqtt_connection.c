@@ -19,10 +19,6 @@ static EventGroupHandle_t mqttConnectionEventGroup;
 
 static const char *TAG = "MQTT";
 
-xQueueHandle getMqttConnectionQueue(void){
-	return mqttConnectionQueue;
-}
-
 EventGroupHandle_t getMQTTConnectionEventGroup(void){
 	return mqttConnectionEventGroup;
 }
@@ -204,6 +200,12 @@ static void mqttConnectionTask(void *arg){
 
 }
 
+void mqttConnectionQueueAdd(message_t * message){
+	if (uxQueueSpacesAvailable(mqttConnectionQueue)) {
+		xQueueSend(mqttConnectionQueue, &message, 0);
+	}
+}
+
 void mqttConnectionInit(void){
 
 	mqttConnectionEventGroup = xEventGroupCreate();
@@ -220,7 +222,6 @@ void mqttConnectionResetNVS(void) {
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttHost", "mqtt.server.example.com"));
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
-
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "mqttPort", 1883));
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
@@ -234,4 +235,6 @@ void mqttConnectionResetNVS(void) {
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);
+
+	messageNVSReset("mqtt");
 }
