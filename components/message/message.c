@@ -7,28 +7,32 @@
 #include "mqtt_connection.h"
 #include "elastic.h"
 
+#include "ssd1306.h"
+
 #define TAG "message"
+
+unsigned char disaplyLine = 0;
 
 void messageIn(message_t * messagePointer, char * from){
 
-	char debugMessage[sizeof(messagePointer->stringValue)];
+	char valueString[sizeof(messagePointer->stringValue)] = {0};
 
 	switch (messagePointer->valueType){
 
 		case MESSAGE_INT:
-			sprintf(debugMessage, "%d", messagePointer->intValue);
+			sprintf(valueString, "%d", messagePointer->intValue);
 		break;
 
 		case MESSAGE_FLOAT:
-			sprintf(debugMessage, "%.4f", messagePointer->floatValue);
+			sprintf(valueString, "%.4f", messagePointer->floatValue);
 		break;
 
 		case MESSAGE_DOUBLE:
-			sprintf(debugMessage, "%.8f", messagePointer->doubleValue);
+			sprintf(valueString, "%.8f", messagePointer->doubleValue);
 		break;
 
 		case MESSAGE_STRING:
-			sprintf(debugMessage, "%s", messagePointer->stringValue);
+			sprintf(valueString, "%s", messagePointer->stringValue);
 		break;
 	}
 
@@ -37,8 +41,21 @@ void messageIn(message_t * messagePointer, char * from){
 		messagePointer->deviceName,
 		messagePointer->sensorName,
 		messagePointer->valueType,
-		debugMessage
+		valueString
 	);
+
+
+	ssd1306Text_t ssd1306Text;
+	ssd1306Text.line = disaplyLine++;
+
+	strcpy(ssd1306Text.text, messagePointer->deviceName);
+	strcat(ssd1306Text.text, " / ");
+	strcat(ssd1306Text.text, messagePointer->sensorName);
+	strcat(ssd1306Text.text, " = ");
+	strcat(ssd1306Text.text, valueString);
+
+	ssd1306QueueText(&ssd1306Text);
+
 
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));

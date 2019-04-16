@@ -167,7 +167,7 @@ static void elasticTask(void *arg){
 			char deviceSensorName[sizeof(message.deviceName) + sizeof(message.sensorName)];
 			strcpy(deviceSensorName, message.deviceName);
 			strcat(deviceSensorName, "/");
-			strcpy(deviceSensorName, message.sensorName);
+			strcat(deviceSensorName, message.sensorName);
 
 			char valueString[16] = {0};
 			switch (message.valueType){
@@ -203,6 +203,8 @@ static void elasticTask(void *arg){
 			cJSON_AddItemToObject(request, "timestamp", cJSON_CreateString(timestamp));
 
 			char * postData = cJSON_Print(request);
+
+			// ESP_LOGI(TAG, "%s", postData);
 
 			esp_http_client_config_t config = {
 				.url = url,

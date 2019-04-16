@@ -24,11 +24,9 @@ static const char *TAG = "Sensor";
 #include "mqtt_connection.h"
 #include "elastic.h"
 
-#include "ssd1306.h"
-
 esp_adc_cal_characteristics_t *adc_chars = NULL;
 
-unsigned char disaplyLine = 0;
+// unsigned char disaplyLine = 0;
 
 int sensorDieTemperatureRead (void) {
     SET_PERI_REG_BITS(SENS_SAR_MEAS_WAIT2_REG, SENS_FORCE_XPD_SAR, 3, SENS_FORCE_XPD_SAR_S);
@@ -51,17 +49,17 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	/*
 	Show on display
 	*/
-	char valueString[32] = {0};
-	sprintf(valueString, "%.2f", value);
+	// char valueString[32] = {0};
+	// sprintf(valueString, "%.2f", value);
 
-	ssd1306Text_t ssd1306Text;
-	ssd1306Text.line = disaplyLine++;
+	// ssd1306Text_t ssd1306Text;
+	// ssd1306Text.line = disaplyLine++;
 
-	strcpy(ssd1306Text.text, sensor);
-	strcat(ssd1306Text.text, ": ");
-	strcat(ssd1306Text.text, valueString);
+	// strcpy(ssd1306Text.text, sensor);
+	// strcat(ssd1306Text.text, ": ");
+	// strcat(ssd1306Text.text, valueString);
 
-	ssd1306QueueText(&ssd1306Text);
+	// ssd1306QueueText(&ssd1306Text);
 
 	/*
 	Prepare message
@@ -69,7 +67,7 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 
 	// Set device unique ID
     nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
 	size_t nvsLength = sizeof(message.deviceName);
 	espError = nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
@@ -106,20 +104,20 @@ static void sensorDieTemperatureTask(void *arg){
 
 	while(1) {
 
-		disaplyLine = 0;
+		// disaplyLine = 0;
 
 
 		vTaskDelay(5000 / portTICK_RATE_MS);
 
 		int temperature = sensorDieTemperatureRead();
 		float celcius = (temperature  - 32) / 1.8;
-		sensorDieTemperatureSendMessage("DieTemperature", celcius);
+		sensorDieTemperatureSendMessage("DieTemp", celcius);
 
 
 		vTaskDelay(5000 / portTICK_RATE_MS);
 
 		float hall = hall_sensor_read();
-		sensorDieTemperatureSendMessage("HallSensor", hall);
+		sensorDieTemperatureSendMessage("Hall", hall);
 
 
 		vTaskDelay(5000 / portTICK_RATE_MS);
