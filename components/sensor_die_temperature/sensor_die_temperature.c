@@ -81,8 +81,7 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	message.valueType = MESSAGE_FLOAT;
 	message.floatValue = value;
 
-
-	messageIn(&message, "dieSensors");
+	messageIn(&message, "dieSens");
 }
 
 float readADC(adc1_channel_t channel) {
@@ -140,5 +139,5 @@ void sensorDieTemperatureInit(void) {
 
 
 void dieSensorsResetNVS(void) {
-	messageNVSReset("dieSensors");
+	messageNVSReset("dieSens");
 }

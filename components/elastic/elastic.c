@@ -247,7 +247,7 @@ static void elasticTask(void *arg){
 
 void elasticQueueAdd(message_t * message){
 	if (uxQueueSpacesAvailable(elasticQueue)) {
-		xQueueSend(elasticQueue, &message, 0);
+		xQueueSend(elasticQueue, message, 0);
 	}
 }
 

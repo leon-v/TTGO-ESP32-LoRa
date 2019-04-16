@@ -1,28 +1,26 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Beeline MQTT - Device Configuration</title>
+		<title>Beeline - Device Configuration</title>
 		<link href="./style.css" rel="stylesheet" type="text/css">
-		<script type="text/javascript" src="/javascript.js"></script>
+		<script type="text/javascript" src="./javascript.js"></script>
 	</head>
 	<body >
-		<h1>Beeline MQTT - Device Configuration</h1>
-		<form action="" method="post">
-		    <table class="table">
-		    	<tbody>
+		<h1>Beeline</h1>
+		<div class="left">
+			<iframe src="./menu.html"></iframe>
+		</div>
+		<div class="right">
+			<h2>Device Configuration</h2>
+			<form action="" method="post">
 
-		    		<tr class="roundBotton roundTop">
-		    			<th>Unique Name</th>
-		    			<td><div class="input"><!--#uniqueName--></div></td>
-		    		</tr>
+				<h3>Unique Name</h3>
+				<div class="inputBlock">
+					<div class="input"><!--#uniqueName--></div>
+				</div>
 
-		    		<tr>
-						<th>&nbsp;</th>
-		    			<th colspan="2"><button>Save Settings</button></th>
-		    		</tr>
-
-		    	</tbody>
-		    </table>
-	    </form>
+				<button>Save Settings</button>
+		    </form>
+		</div>
 	</body>
 </html>

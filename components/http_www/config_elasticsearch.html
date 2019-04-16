@@ -1,31 +1,27 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Beeline MQTT - Elasticsearch Configuration</title>
+		<title>Beeline - Elasticsearch Configuration</title>
 		<link href="./style.css" rel="stylesheet" type="text/css">
 		<script type="text/javascript" src="/javascript.js"></script>
 	</head>
 	<body >
-		<h1>Beeline MQTT - Elasticsearch Configuration</h1>
-		<form action="" method="post">
-		    <table class="table">
-		    	<tbody>
+		<h1>Beeline</h1>
+		<div class="left">
+			<iframe src="./menu.html"></iframe>
+		</div>
+		<div class="right">
+			<h2>Elasticsearch Configuration</h2>
+				<form action="" method="post">
 
-		    		<tr class="roundTop roundBotton">
-		    			<th>URL</th>
-		    			<td>
-		    				<div class="input"><!--#elasticURL--></div>
-		    				<p class="info">e.g. http://user:pass@elastic.example.com:9200</p>
-		    			</td>
-		    		</tr>
+				<h3>URL</h3>
+				<div class="inputBlock">
+					<div class="input"><!--#elasticURL--></div>
+		    		<p class="info">e.g. http://user:pass@elastic.example.com:9200</p>
+				</div>
 
-		    		<tr>
-						<th>&nbsp;</th>
-		    			<th colspan="2"><button>Save Settings</button></th>
-		    		</tr>
-
-		    	</tbody>
-		    </table>
-	    </form>
+				<button>Save Settings</button>
+		    </form>
+		</div>
 	</body>
 </html>

@@ -1,24 +1,37 @@
 *{
 	box-sizing: border-box;
 }
+html{
+	height:100%;
+}
 body{
 	font-family: Arial;
 	color: #ede5ff;
 	background-color:#262626;
 	width:720px;
-}
-table{
+	height:100%;
 	width:100%;
+	min-width: 720px
 }
-td{
-	width:70%;
+
+body .left{
+	width:33%;
+	float:left;
+	height:100%;
+	border-right: 1px solid #ede5ff;
 }
-th{
-	text-align: left;
-	width:125px;
-	font-size: 14px;
-	white-space: nowrap;
+body .left iframe{
+	height:90%;
+	width:100%;
+	border:0;
+	max-width: 280px;
 }
+body .right{
+	width:66%;
+	float:right;
+	max-width: 800px;
+}
+
 input, select, button{
 	background-color:#262626;
 	color: #ede5ff;
@@ -32,7 +45,7 @@ input[type=checkbox]{
 	width:auto;
 }
 button{
-	margin-top:5px;
+	margin-top:20px;
     width: auto;
     border: 1px solid white;
     border-radius: 5px;
@@ -44,10 +57,7 @@ button{
 .input{
 	padding: 3px;
     margin-bottom: -5px;
-}
-
-.input{
-	border:1px solid #ffffff;
+    border:1px solid #ffffff;
 }
 
 .roundTop .input{
@@ -58,7 +68,6 @@ button{
 	border-bottom-right-radius: 5px;
 	border-bottom-left-radius: 5px;
 }
-a{
-	color: #f7f3ff;
-	text-decoration: none;
+.inputBlock{
+	margin-left: 50px;
 }

@@ -9,16 +9,18 @@
 
 #include "wifi.h"
 
-#include "javascript_js.h"
-#include "style_css.h"
-
-#include "index_html.h"
 #include "config_device_html.h"
-#include "config_lora_html.h"
-#include "config_wifi_html.h"
-#include "config_mqtt_html.h"
+#include "config_diesensors_html.h"
 #include "config_elasticsearch_html.h"
+#include "config_lora_html.h"
+#include "config_mqtt_html.h"
 #include "config_ntp_html.h"
+#include "config_wifi_html.h"
+#include "index_html.h"
+#include "javascript_js.h"
+#include "menu_css.h"
+#include "menu_html.h"
+#include "style_css.h"
 
 
 #define TAG "http"
@@ -97,6 +99,9 @@ char * httpServerParseValues(tokens_t * tokens, char * buffer, const char * rowD
 		if (tokens->tokens[index].value == NULL){
 			tokens->tokens[index].value = tokens->tokens[index].key + strlen(tokens->tokens[index].key);
 		}
+
+		httpServerURLDecode(tokens->tokens[index].key, MAX_HTTP_SSI_VALUE_LENGTH);
+		httpServerURLDecode(tokens->tokens[index].value, MAX_HTTP_SSI_VALUE_LENGTH);
 	}
 
 	return end;
@@ -118,6 +123,25 @@ char * httpServerGetTokenValue(tokens_t * tokens, const char * key){
 #define START_SSI "<!--#"
 #define END_SSI "-->"
 
+void httpGetBoolTagKey(char * ssiTagKeyTrimed, const char * ssiTagKey){
+
+	char * end = strstr(ssiTagKey, ">>");
+
+	if (!end){
+		strcpy(ssiTagKeyTrimed, ssiTagKey);
+	}
+
+	int length = end - ssiTagKey;
+
+	strncpy(ssiTagKeyTrimed, ssiTagKey, length);
+}
+
+int httpGetBoolTagRotate(const char * ssiTagKey){
+
+	char * rotateString = strstr(ssiTagKey, ">>");
+
+	return rotateString ? atoi(rotateString + 2) : 0;
+}
 
 void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength) {
 
@@ -194,6 +218,8 @@ void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileE
 			size_t nvsLength = sizeof(nvsStringValue);
 			uint32_t nvsIntValue;
 			uint8_t nvsCharValue;
+			char ssiKeyTrim[MAX_HTTP_SSI_KEY_LENGTH] = {"\0"};
+			int rotate = 0;
 
 			switch (ssiTag.type) {
 
@@ -216,13 +242,16 @@ void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileE
 				break;
 
 				case SSI_TYPE_CHECKBOX:
-					nvs_get_u8(nvsHandle, ssiTag.key, &nvsCharValue);
-					if (nvsCharValue > 0) {
-						strcpy(nvsStringValue, "checked");
-					}
-					else{
-						strcpy(nvsStringValue, "");
-					}
+
+					httpGetBoolTagKey(ssiKeyTrim, ssiTag.key);
+					rotate = httpGetBoolTagRotate(ssiTag.key);
+
+					nvs_get_u8(nvsHandle, ssiKeyTrim, &nvsCharValue);
+
+					nvsCharValue = (nvsCharValue >> rotate) & 0x01;
+
+					strcpy(nvsStringValue, nvsCharValue ? "checked" : "");
+
 					sprintf(replaceSSIValue, "\
 							<input type=\"hidden\" id=\"_%s\" name=\"%s\" value=\"%d\">\
 							<input type=\"checkbox\" id=\"%s\" onchange=\"document.getElementById('_%s').value = this.checked?1:0;\" %s>\
@@ -285,7 +314,9 @@ void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bufferLen
 			continue;
 		}
 
-		httpServerURLDecode(value, MAX_HTTP_SSI_VALUE_LENGTH);
+		char ssiKeyTrim[MAX_HTTP_SSI_KEY_LENGTH] = {"\0"};
+		int rotate = 0;
+		unsigned char nvsCharValue = 0;
 
 		switch (ssiTag.type) {
 
@@ -299,7 +330,21 @@ void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bufferLen
 			break;
 
 			case SSI_TYPE_CHECKBOX:
-				ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, ssiTag.key, atoi(value)));
+
+				httpGetBoolTagKey(ssiKeyTrim, ssiTag.key);
+				rotate = httpGetBoolTagRotate(ssiTag.key);
+
+				nvs_get_u8(nvsHandle, ssiKeyTrim, &nvsCharValue);
+
+				if (atoi(value)) {
+					nvsCharValue|= (0x01 << rotate);
+				}
+				else{
+					nvsCharValue&= ~(0x01 << rotate);
+				}
+
+				ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, ssiKeyTrim, nvsCharValue));
+				ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 			break;
 		}
 
@@ -342,7 +387,7 @@ httpd_handle_t start_webserver(void) {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
 
-    config.max_uri_handlers = 16;
+    config.max_uri_handlers = 32;
 
     // Start the httpd server
     printf("http: Starting server on port: '%d'", config.server_port);
@@ -352,20 +397,18 @@ httpd_handle_t start_webserver(void) {
         // Set URI handlers
         printf("http: Registering URI handlers");
 
-        httpPageJavascriptJSInit(server);
-        httpPageStyleCSSInit(server);
-
-        httpPageIndexHTMLInit(server);
-
-        httpPageConfigLoRaHTMLInit(server);
-        httpPageConfigWiFiHTMLInit(server);
-        httpPageConfigMQTTHTMLInit(server);
-        httpPageConfigElasticsearchHTMLInit(server);
-        httpPageConfigNTPHTMLInit(server);
         httpPageConfigDeviceHTMLInit(server);
-
-
-
+        httpPageConfigDieSensorsHTMLInit(server);
+        httpPageConfigElasticsearchHTMLInit(server);
+        httpPageConfigLoRaHTMLInit(server);
+        httpPageConfigMQTTHTMLInit(server);
+        httpPageConfigNTPHTMLInit(server);
+        httpPageConfigWiFiHTMLInit(server);
+        httpPageIndexHTMLInit(server);
+        httpPageJavascriptJSInit(server);
+        httpPageMenuCSSInit(server);
+        httpPageMenuHTMLInit(server);
+        httpPageStyleCSSInit(server);
 
         return server;
     }

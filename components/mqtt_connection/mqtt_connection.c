@@ -202,7 +202,7 @@ static void mqttConnectionTask(void *arg){
 
 void mqttConnectionQueueAdd(message_t * message){
 	if (uxQueueSpacesAvailable(mqttConnectionQueue)) {
-		xQueueSend(mqttConnectionQueue, &message, 0);
+		xQueueSend(mqttConnectionQueue, message, 0);
 	}
 }
 

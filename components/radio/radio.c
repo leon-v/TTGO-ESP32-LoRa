@@ -252,7 +252,7 @@ void radioLoraRx(void) {
 
 void radioLoRaQueueAdd(message_t * message){
 	if (uxQueueSpacesAvailable(radioQueue)) {
-		xQueueSend(radioQueue, &message, 0);
+		xQueueSend(radioQueue, message, 0);
 	}
 }
 

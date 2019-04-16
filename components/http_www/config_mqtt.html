@@ -1,44 +1,61 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Beeline MQTT - MQTT Configuration</title>
+		<title>Beeline - MQTT Configuration</title>
 		<link href="./style.css" rel="stylesheet" type="text/css">
 		<script type="text/javascript" src="/javascript.js"></script>
 	</head>
 	<body >
-		<h1>Beeline MQTT - MQTT Configuration</h1>
-		<form action="" method="post">
-		    <table class="table">
-		    	<tbody>
+		<h1>Beeline</h1>
+		<div class="left">
+			<iframe src="./menu.html"></iframe>
+		</div>
+		<div class="right">
+			<h2>MQTT Configuration</h2>
+				<form action="" method="post">
 
-					<tr class="roundTop">
-		    			<th>Host Name</th>
-		    			<td><div class="input"><!--#mqttHost--></div></td>
-		    		</tr>
-		    		<tr>
-		    			<th>Port</th>
-		    			<td><div class="input"><!--#mqttPort--></div></td>
-		    		</tr>
-		    		<tr>
-		    			<th>Keepalive (sec)</th>
-		    			<td><div class="input"><!--#mqttKeepalive--></div></td>
-		    		</tr>
-		    		<tr>
-		    			<th>User Name</th>
-		    			<td><div class="input"><!--#mqttUsername--></div></td>
-		    		</tr>
-		    		<tr class="roundBotton">
-		    			<th>Password</th>
-		    			<td><div class="input"><!--#mqttPassword--></div></td>
-		    		</tr>
+				<h3>Host Name</h3>
+				<div class="inputBlock">
+					<div class="input"><!--#mqttHost--></div>
+				</div>
 
-		    		<tr>
-						<th>&nbsp;</th>
-		    			<th colspan="2"><button>Save Settings</button></th>
-		    		</tr>
 
-		    	</tbody>
-		    </table>
-	    </form>
+				<h3>Port</h3>
+				<div class="inputBlock">
+					<div class="input"><!--#mqttPort--></div>
+				</div>
+
+
+				<h3>Keepalive (sec)</h3>
+				<div class="inputBlock">
+					<div class="input"><!--#mqttKeepalive--></div>
+				</div>
+
+
+				<h3>User Name</h3>
+				<div class="inputBlock">
+					<div class="input"><!--#mqttUsername--></div>
+				</div>
+
+
+				<h3>Password</h3>
+				<div class="inputBlock">
+					<div class="input"><!--#mqttPassword--></div>
+				</div>
+
+				<h3>Incoming Message Routing</h3>
+				<div class="inputBlock">
+					<!--#mqttInRt>>0-->
+					<label for="mqttInRt>>0">Forward to LoRa</label><br>
+					<!--#mqttInRt>>1-->
+					<label for="mqttInRt>>1">Forward to MQTT</label><br>
+					<!--#mqttInRt>>2-->
+					<label for="mqttInRt>>2">Forward to Elasticsearch</label><br>
+				</div>
+
+
+				<button>Save Settings</button>
+		    </form>
+		</div>
 	</body>
 </html>
