@@ -16,19 +16,15 @@
 #include "soc/rtc_cntl_reg.h"
 #include "soc/sens_reg.h"
 
-static const char *TAG = "Sensor";
+static const char *TAG = "dieSensors";
 
 #include "message.h"
-
-#include "radio.h"
-#include "mqtt_connection.h"
-#include "elastic.h"
 
 esp_adc_cal_characteristics_t *adc_chars = NULL;
 
 // unsigned char disaplyLine = 0;
 
-int sensorDieTemperatureRead (void) {
+static int dieSensorsGetTemperature (void) {
     SET_PERI_REG_BITS(SENS_SAR_MEAS_WAIT2_REG, SENS_FORCE_XPD_SAR, 3, SENS_FORCE_XPD_SAR_S);
     SET_PERI_REG_BITS(SENS_SAR_TSENS_CTRL_REG, SENS_TSENS_CLK_DIV, 10, SENS_TSENS_CLK_DIV_S);
     CLEAR_PERI_REG_MASK(SENS_SAR_TSENS_CTRL_REG, SENS_TSENS_POWER_UP);
@@ -42,28 +38,9 @@ int sensorDieTemperatureRead (void) {
 }
 
 
-void sensorDieTemperatureSendMessage(char * sensor, float value) {
+static void dieSensorsSendMessage(char * sensor, float value) {
 	message_t message;
 	esp_err_t espError;
-
-	/*
-	Show on display
-	*/
-	// char valueString[32] = {0};
-	// sprintf(valueString, "%.2f", value);
-
-	// ssd1306Text_t ssd1306Text;
-	// ssd1306Text.line = disaplyLine++;
-
-	// strcpy(ssd1306Text.text, sensor);
-	// strcat(ssd1306Text.text, ": ");
-	// strcat(ssd1306Text.text, valueString);
-
-	// ssd1306QueueText(&ssd1306Text);
-
-	/*
-	Prepare message
-	*/
 
 	// Set device unique ID
     nvs_handle nvsHandle;
@@ -82,7 +59,7 @@ void sensorDieTemperatureSendMessage(char * sensor, float value) {
 	messageIn(&message, "dieSens");
 }
 
-float readADC(adc1_channel_t channel) {
+static float dieSensorsReadADC(adc1_channel_t channel) {
 
 	float result = 0.00;
 	int count = 10000;
@@ -98,7 +75,8 @@ float readADC(adc1_channel_t channel) {
 	return result;
 }
 
-static void sensorDieTemperatureTask(void *arg){
+
+static void dieSensorsTask(void *arg){
 
 	ESP_LOGI(TAG, "task start\n");
 
@@ -109,32 +87,30 @@ static void sensorDieTemperatureTask(void *arg){
 
 		vTaskDelay(5000 / portTICK_RATE_MS);
 
-		int temperature = sensorDieTemperatureRead();
+		int temperature = dieSensorsGetTemperature();
 		float celcius = (temperature  - 32) / 1.8;
-		sensorDieTemperatureSendMessage("DieTemp", celcius);
+		dieSensorsSendMessage("DieTemp", celcius);
 
 
 		vTaskDelay(5000 / portTICK_RATE_MS);
 
 		float hall = hall_sensor_read();
-		sensorDieTemperatureSendMessage("Hall", hall);
+		dieSensorsSendMessage("Hall", hall);
 
 
 		vTaskDelay(5000 / portTICK_RATE_MS);
 
 		adc1_config_width(ADC_WIDTH_BIT_12);
 		adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
-		float adc11 = readADC(ADC1_CHANNEL_0) * 2;
+		float adc11 = dieSensorsReadADC(ADC1_CHANNEL_0) * 2;
 
-		sensorDieTemperatureSendMessage("Battery", adc11);
+		dieSensorsSendMessage("Battery", adc11);
 	}
 }
 
-
-void sensorDieTemperatureInit(void) {
-	xTaskCreate(&sensorDieTemperatureTask, "sensorDieTemperature", 4096, NULL, 10, NULL);
+void dieSensorsInit(void) {
+	xTaskCreate(&dieSensorsTask, "dieSensors", 4096, NULL, 10, NULL);
 }
-
 
 void dieSensorsResetNVS(void) {
 	messageNVSReset("dieSens");

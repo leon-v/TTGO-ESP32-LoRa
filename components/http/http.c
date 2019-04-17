@@ -25,7 +25,7 @@
 
 #define TAG "http"
 
-void httpServerURLDecode(char * input, int length) {
+static void httpServerURLDecode(char * input, int length) {
 
     char * output = input;
     char hex[3] = "\0\0\0";
@@ -61,7 +61,7 @@ void httpServerURLDecode(char * input, int length) {
     output[0] = '\0';
 }
 
-char * httpServerParseValues(tokens_t * tokens, char * buffer, const char * rowDelimiter, const char * valueDelimiter, const char * endMatch){
+static char * httpServerParseValues(tokens_t * tokens, char * buffer, const char * rowDelimiter, const char * valueDelimiter, const char * endMatch){
 
 	tokens->length = 0;
 
@@ -108,7 +108,7 @@ char * httpServerParseValues(tokens_t * tokens, char * buffer, const char * rowD
 }
 
 
-char * httpServerGetTokenValue(tokens_t * tokens, const char * key){
+static char * httpServerGetTokenValue(tokens_t * tokens, const char * key){
 
 	for (unsigned int index = 0; index < tokens->length; index++){
 
@@ -123,7 +123,7 @@ char * httpServerGetTokenValue(tokens_t * tokens, const char * key){
 #define START_SSI "<!--#"
 #define END_SSI "-->"
 
-void httpGetBoolTagKey(char * ssiTagKeyTrimed, const char * ssiTagKey){
+static void httpGetBoolTagKey(char * ssiTagKeyTrimed, const char * ssiTagKey){
 
 	char * end = strstr(ssiTagKey, ">>");
 
@@ -136,14 +136,14 @@ void httpGetBoolTagKey(char * ssiTagKeyTrimed, const char * ssiTagKey){
 	strncpy(ssiTagKeyTrimed, ssiTagKey, length);
 }
 
-int httpGetBoolTagRotate(const char * ssiTagKey){
+static int httpGetBoolTagRotate(const char * ssiTagKey){
 
 	char * rotateString = strstr(ssiTagKey, ">>");
 
 	return rotateString ? atoi(rotateString + 2) : 0;
 }
 
-void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength) {
+static void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength) {
 
 	char * file = (char * ) fileStart;
 	char * out = outBuffer;
@@ -274,7 +274,7 @@ void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileE
 	nvs_close(nvsHandle);
 }
 
-esp_err_t httpGetPost(httpd_req_t *req, char * postString, unsigned int postStringLength){
+static esp_err_t httpGetPost(httpd_req_t *req, char * postString, unsigned int postStringLength){
 
 	int ret, remaining = req->content_len;
 
@@ -292,7 +292,7 @@ esp_err_t httpGetPost(httpd_req_t *req, char * postString, unsigned int postStri
     return ESP_OK;
 }
 
-void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bufferLength, const ssiTag_t * ssiTags, int ssiTagsLength){
+static void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bufferLength, const ssiTag_t * ssiTags, int ssiTagsLength){
 
 	ESP_ERROR_CHECK(httpGetPost(req, buffer, bufferLength));
 
@@ -382,7 +382,7 @@ void stop_webserver(httpd_handle_t server) {
 }
 
 
-httpd_handle_t start_webserver(void) {
+static httpd_handle_t start_webserver(void) {
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;

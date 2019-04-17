@@ -25,16 +25,10 @@ typedef struct{
 } tokens_t;
 
 void httpServerInit(void);
-
-void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiValuesLength);
-esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiValuesLength);
-char * httpServerParseValues(tokens_t * tokens, char * buffer, const char * rowDelimiter, const char * valueDelimiter, const char * endMatch);
-esp_err_t httpGetPost(httpd_req_t *req, char * postString, unsigned int postStringLength);
+esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength);
 
 #define MAX_HTTP_SSI_KEY_LENGTH 32
 #define MAX_HTTP_SSI_VALUE_LENGTH 384
-
-char * httpServerGetTokenValue(tokens_t * tokens, const char * key);
 
 #define HTTP_SERVER_H
 #endif

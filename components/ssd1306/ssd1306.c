@@ -24,7 +24,7 @@ static xQueueHandle ssd1306Queue = NULL;
 
 unsigned char ssd1306Ready = 0;
 
-void ssd1306PinsInit() {
+static void ssd1306PinsInit() {
 
 	gpio_config_t io_conf;
 	io_conf.intr_type = GPIO_PIN_INTR_DISABLE; //disable interrupt
@@ -53,7 +53,7 @@ void ssd1306PinsInit() {
 
 }
 
-void ssd1306ModuleInit() {
+static void ssd1306ModuleInit() {
 	esp_err_t espRc;
 
 	i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -108,7 +108,7 @@ void ssd1306ModuleInit() {
 // 	vTaskDelete(NULL);
 // }
 
-void ssd1306CLS(void) {
+static void ssd1306CLS(void) {
 
 	if (!ssd1306Ready){
 		return;
@@ -205,7 +205,7 @@ void ssd1306CLS(void) {
 // 	vTaskDelete(NULL);
 // }
 
-void ssd1306SetTextLine(uint8_t cur_page) {
+static void ssd1306SetTextLine(uint8_t cur_page) {
 
 	if (!ssd1306Ready){
 		return;
@@ -228,7 +228,7 @@ void ssd1306SetTextLine(uint8_t cur_page) {
 	i2c_cmd_link_delete(cmd);
 }
 
-void ssd1306PutCharacter(uint8_t character) {
+static void ssd1306PutCharacter(uint8_t character) {
 
 	if (!ssd1306Ready){
 		return;
@@ -249,7 +249,7 @@ void ssd1306PutCharacter(uint8_t character) {
 	i2c_cmd_link_delete(cmd);
 }
 
-void ssd1306SetText(ssd1306Text_t * ssd1306Text) {
+static void ssd1306SetText(ssd1306Text_t * ssd1306Text) {
 
 	uint8_t i;
 
@@ -267,7 +267,7 @@ void ssd1306SetText(ssd1306Text_t * ssd1306Text) {
 }
 
 
-void ssd1306Task(void *arg) {
+static void ssd1306Task(void *arg) {
 
 	ssd1306Text_t ssd1306Text;
 

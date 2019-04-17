@@ -13,7 +13,7 @@
 
 #include "http.h"
 #include "mqtt_connection.h"
-#include "sensor_die_temperature.h"
+#include "die_sensors.h"
 #include "elastic.h"
 // #include "radio.h"
 #include "datetime.h"
@@ -153,6 +153,6 @@ void app_main(void) {
 
     dateTimeInit();
 
-    sensorDieTemperatureInit();
+    dieSensorsInit();
 }
 

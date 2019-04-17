@@ -17,14 +17,14 @@
 
 static xQueueHandle radioQueue = NULL;
 
-char loraKey[CONFIG_HTTP_NVS_MAX_STRING_LENGTH] = {0};
+static char loraKey[CONFIG_HTTP_NVS_MAX_STRING_LENGTH] = {0};
 static void * aesEncryptContext;
 static void * aesDecryptContext;
 
 static unsigned int loraTXSyncWord;
 static unsigned int loraRXSyncWord;
 
-void radioPrintBuffer(const char * tag, unsigned char * buffer, int length){
+static void radioPrintBuffer(const char * tag, unsigned char * buffer, int length){
 
 	printf("%s: %d: ", tag, length);
 	for (int i = 0; i < length; i++) {
@@ -33,7 +33,7 @@ void radioPrintBuffer(const char * tag, unsigned char * buffer, int length){
 	printf("\n");
 }
 
-void radioShift(unsigned char * buffer, int amount, int * length){
+static void radioShift(unsigned char * buffer, int amount, int * length){
 
 
 	if (amount > 0){
@@ -51,7 +51,7 @@ void radioShift(unsigned char * buffer, int amount, int * length){
 	* length = * length + amount;
 }
 
-void radioCreateMessage(message_t * message, unsigned char * radioBuffer, int bufferLength) {
+static void radioCreateMessage(message_t * message, unsigned char * radioBuffer, int bufferLength) {
 
 	unsigned char * bytes = radioBuffer;
 	int length;
@@ -98,7 +98,7 @@ void radioCreateMessage(message_t * message, unsigned char * radioBuffer, int bu
 	}
 
 }
-int radioCreateBuffer(unsigned char * radioBuffer, message_t * message) {
+static int radioCreateBuffer(unsigned char * radioBuffer, message_t * message) {
 
 	int length = 0;
 	unsigned char * bytes = radioBuffer;
@@ -144,7 +144,7 @@ int radioCreateBuffer(unsigned char * radioBuffer, message_t * message) {
 
 #define BLOCK_LENGTH 16
 
-void radioEncrypt(unsigned char * buffer, int * length){
+static void radioEncrypt(unsigned char * buffer, int * length){
 
 	if (!aesEncryptContext) {
 		return;
@@ -164,7 +164,7 @@ void radioEncrypt(unsigned char * buffer, int * length){
 	*length = (blocks * BLOCK_LENGTH);
 }
 
-int radioDecrypt(unsigned char * buffer, int * length){
+static int radioDecrypt(unsigned char * buffer, int * length){
 
 	if (!aesDecryptContext) {
 		return 0;
@@ -187,7 +187,7 @@ int radioDecrypt(unsigned char * buffer, int * length){
 	return 1;
 }
 
-void radioLoRaSendRadioMessage(message_t * message){
+static void radioLoRaSendRadioMessage(message_t * message){
 	int length;
 
 	unsigned char buffer[sizeof(message_t)] = {0};
@@ -202,12 +202,12 @@ void radioLoRaSendRadioMessage(message_t * message){
 	lora_send_packet(buffer, length);
 }
 
-void radioLoraSetRx(void) {
+static void radioLoraSetRx(void) {
 	lora_set_sync_word( (unsigned char) loraRXSyncWord);
 	lora_receive();    // put into receive mode
 }
 
-void radioLoraRx(void) {
+static void radioLoraRx(void) {
 	int length;
 	unsigned char buffer[sizeof(message_t)];
 	message_t message;
@@ -250,14 +250,7 @@ void radioLoraRx(void) {
 	}
 }
 
-void radioLoRaQueueAdd(message_t * message){
-	if (uxQueueSpacesAvailable(radioQueue)) {
-		xQueueSend(radioQueue, message, 0);
-	}
-}
-
-
-void radioTask(void * arg){
+static void radioTask(void * arg){
 
 	message_t message;
 
@@ -272,6 +265,12 @@ void radioTask(void * arg){
 	}
 
 	vTaskDelete(NULL);
+}
+
+void radioLoRaQueueAdd(message_t * message){
+	if (uxQueueSpacesAvailable(radioQueue)) {
+		xQueueSend(radioQueue, message, 0);
+	}
 }
 
 void radioInit(void){

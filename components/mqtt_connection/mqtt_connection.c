@@ -19,10 +19,6 @@ static EventGroupHandle_t mqttConnectionEventGroup;
 
 static const char *TAG = "MQTT";
 
-EventGroupHandle_t getMQTTConnectionEventGroup(void){
-	return mqttConnectionEventGroup;
-}
-
 static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;

@@ -5,7 +5,6 @@
 
 void elasticInit(void);
 void elasticResetNVS(void);
-xQueueHandle elasticGetQueue(void);
 void elasticQueueAdd(message_t * message);
 
 #endif

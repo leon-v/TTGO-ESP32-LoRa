@@ -9,8 +9,6 @@
 #include "message.h"
 
 void mqttConnectionInit(void);
-xQueueHandle getMQTTConnectionMessageQueue(void);
-EventGroupHandle_t getMQTTConnectionEventGroup(void);
 void mqttConnectionResetNVS(void);
 void mqttConnectionQueueAdd(message_t * message);
 

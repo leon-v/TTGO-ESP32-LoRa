@@ -13,7 +13,7 @@
 
 static xQueueHandle elasticQueue = NULL;
 
-esp_err_t elasticHTTPEventHandler(esp_http_client_event_t *evt) {
+static esp_err_t elasticHTTPEventHandler(esp_http_client_event_t *evt) {
 
 	int httpResponseCode = 0;
 
@@ -222,20 +222,6 @@ static void elasticTask(void *arg){
 			err = esp_http_client_set_header(client, "Content-Type", "application/json");
 
 			err = esp_http_client_perform(client);
-
-			if (err == ESP_OK) {
-
-				int httpResponseCode = 0;
-				httpResponseCode = esp_http_client_get_status_code(client);
-
-				// ESP_LOGI(TAG, "N: %s, V: %.2f, D: %s -> Elastic. HTTP Status %d, Response Length: %d.\n",
-				// 	message.name,
-				// 	message.value,
-				// 	timestamp,
-				// 	httpResponseCode,
-    //             	esp_http_client_get_content_length(client)
-				// );
-			}
 
 			esp_http_client_cleanup(client);
 

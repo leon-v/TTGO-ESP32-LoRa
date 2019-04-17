@@ -3,8 +3,9 @@
 
 #include "message.h"
 
+void radioLoRaQueueAdd(message_t * message);
 void radioInit(void);
 void radioResetNVS(void);
-void radioLoRaQueueAdd(message_t * message);
+
 
 #endif
