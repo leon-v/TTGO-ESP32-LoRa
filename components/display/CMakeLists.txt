@@ -4,6 +4,6 @@ file(GLOB component_files "*.c")
 
 set(COMPONENT_SRCS ${component_files})
 
-set(COMPONENT_PRIV_REQUIRES ssd1306 radio mqtt_connection elastic display nvs_flash)
+set(COMPONENT_PRIV_REQUIRES message nvs_flash)
 
 register_component()

@@ -22,10 +22,10 @@ enum messageEndpoint_t {
 	LORA = 0,
 	MQTT,
 	ELASTICSEARCH,
-	INTERNAL_SENSORS
+	DISPLAY
 };
 
-void messageIn(message_t * message, char * from);
+void messageIn(message_t * messagePointer, const char * from);
 void messageNVSReset(char * from);
 
 #endif

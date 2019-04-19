@@ -11,6 +11,7 @@
 
 #include "config_device_html.h"
 #include "config_diesensors_html.h"
+#include "config_display_html.h"
 #include "config_elasticsearch_html.h"
 #include "config_lora_html.h"
 #include "config_mqtt_html.h"
@@ -229,6 +230,12 @@ static void httpReaplceSSI(char * outBuffer, const char * fileStart, const char 
 					sprintf(replaceSSIValue, "<input type=\"text\" name=\"%s\" value=\"%s\" />", ssiTag.key, nvsStringValue);
 				break;
 
+				case SSI_TYPE_TEXTAREA:
+					nvs_get_str(nvsHandle, ssiTag.key, nvsStringValue, &nvsLength);
+					nvsStringValue[nvsLength] = '\0';
+					sprintf(replaceSSIValue, "<textarea name=\"%s\">%s</textarea>", ssiTag.key, nvsStringValue);
+				break;
+
 				case SSI_TYPE_PASSWORD:
 					nvs_get_str(nvsHandle, ssiTag.key, nvsStringValue, &nvsLength);
 					nvsStringValue[nvsLength] = '\0';
@@ -322,6 +329,7 @@ static void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bu
 
 			case SSI_TYPE_TEXT:
 			case SSI_TYPE_PASSWORD:
+			case SSI_TYPE_TEXTAREA:
 				ESP_ERROR_CHECK(nvs_set_str(nvsHandle, ssiTag.key, value));
 			break;
 
@@ -399,6 +407,7 @@ static httpd_handle_t start_webserver(void) {
 
         httpPageConfigDeviceHTMLInit(server);
         httpPageConfigDieSensorsHTMLInit(server);
+        httpPageConfigDisplayHTMLInit(server);
         httpPageConfigElasticsearchHTMLInit(server);
         httpPageConfigLoRaHTMLInit(server);
         httpPageConfigMQTTHTMLInit(server);

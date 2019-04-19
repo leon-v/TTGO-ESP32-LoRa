@@ -6,6 +6,8 @@
 #include "radio.h"
 #include "mqtt_connection.h"
 #include "elastic.h"
+#include "display.h"
+
 
 #include "ssd1306.h"
 
@@ -13,7 +15,7 @@
 
 unsigned char disaplyLine = 0;
 
-void messageIn(message_t * messagePointer, char * from){
+void messageIn(message_t * messagePointer, const char * from){
 
 	char valueString[sizeof(messagePointer->stringValue)] = {0};
 
@@ -44,9 +46,13 @@ void messageIn(message_t * messagePointer, char * from){
 		valueString
 	);
 
+	disaplyLine++;
+	if (disaplyLine > 8){
+		disaplyLine = 0;
+	}
 
 	ssd1306Text_t ssd1306Text;
-	ssd1306Text.line = disaplyLine++;
+	ssd1306Text.line = disaplyLine;
 
 	strcpy(ssd1306Text.text, messagePointer->deviceName);
 	strcat(ssd1306Text.text, " / ");
@@ -84,10 +90,11 @@ void messageIn(message_t * messagePointer, char * from){
 		elasticQueueAdd(messagePointer);
 	}
 
-	if ((routing >> INTERNAL_SENSORS) & 0x01){
-		ESP_LOGI(TAG, "Forwarding to Die Sensors");
-		// Internal sensors has no outgoing path
+	if ((routing >> DISPLAY) & 0x01){
+		ESP_LOGI(TAG, "Forwarding to Display");
+		displayQueueAdd(displayQueueAdd);
 	}
+
 }
 
 void messageNVSReset(char * from){

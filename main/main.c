@@ -15,6 +15,7 @@
 #include "mqtt_connection.h"
 #include "die_sensors.h"
 #include "elastic.h"
+#include "display.h"
 // #include "radio.h"
 #include "datetime.h"
 #include "ssd1306.h"
@@ -154,5 +155,7 @@ void app_main(void) {
     dateTimeInit();
 
     dieSensorsInit();
+
+    displayInit();
 }
 

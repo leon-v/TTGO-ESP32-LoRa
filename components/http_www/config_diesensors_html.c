@@ -4,9 +4,20 @@ static const char  pageStart[]	asm("_binary_config_diesensors_html_start");
 static const char  pageEnd[]	asm("_binary_config_diesensors_html_end");
 
 static const ssiTag_t ssiTags[] = {
+
+	{"dieSensEn>>0",		SSI_TYPE_CHECKBOX},
+	{"dieSensEn>>1",		SSI_TYPE_CHECKBOX},
+	{"dieSensEn>>2",		SSI_TYPE_CHECKBOX},
+
+	{"delayTemp",			SSI_TYPE_INTEGER},
+	{"delayHall",			SSI_TYPE_INTEGER},
+	{"delayBattV",			SSI_TYPE_INTEGER},
+
+
 	{"dieSensInRt>>0",		SSI_TYPE_CHECKBOX},
 	{"dieSensInRt>>1",		SSI_TYPE_CHECKBOX},
 	{"dieSensInRt>>2",		SSI_TYPE_CHECKBOX},
+	{"dieSensInRt>>3",		SSI_TYPE_CHECKBOX},
 };
 
 static esp_err_t handler(httpd_req_t *req) {

@@ -11,6 +11,7 @@ static const ssiTag_t ssiTags[] = {
 	{"loraInRt>>0",		SSI_TYPE_CHECKBOX},
 	{"loraInRt>>1",		SSI_TYPE_CHECKBOX},
 	{"loraInRt>>2",		SSI_TYPE_CHECKBOX},
+	{"loraInRt>>3",		SSI_TYPE_CHECKBOX},
 };
 
 static esp_err_t handler(httpd_req_t *req) {

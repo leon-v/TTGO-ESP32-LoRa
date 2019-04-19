@@ -33,7 +33,7 @@ body .right{
     padding-left: 20px;
 }
 
-input, select, button{
+textarea, input, select, button{
 	background-color:#262626;
 	color: #ede5ff;
 	padding:0px;
@@ -41,6 +41,15 @@ input, select, button{
 	border: 0;
 	font-size: 14px;
 	width:100%;
+}
+textarea{
+	height:100%;
+}
+input[type=number]{
+	width: 100px;
+    border: 1px solid #ede5ff;
+    border-radius: 5px;
+    margin-right: 5px;
 }
 input[type=checkbox]{
 	width:auto;
