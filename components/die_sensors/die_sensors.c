@@ -42,16 +42,17 @@ static int dieSensorsGetTemperature (void) {
 
 static float dieSensorsReadADC(adc1_channel_t channel) {
 
-	float result = 0.00;
-	int count = 10000;
+	unsigned long long int result = 0;
+	int count = 1000;
 
 	for (int i = 0; i < count; i++) {
-		// result+= esp_adc_cal_raw_to_voltage(adc1_get_raw(channel), adc_chars);
-		result+= adc1_get_raw(channel);
+		ets_delay_us(1);
+		result+= esp_adc_cal_raw_to_voltage(adc1_get_raw(channel), adc_chars);
+		// result+= adc1_get_raw(channel);
 
 	}
 
-	result = result / count;
+	result = ( (float) result) / count;
 
 	return result;
 }
@@ -82,9 +83,7 @@ static void dieSensorsTemperatureTask(void * arg){
 
 		vTaskDelay(delay / portTICK_RATE_MS);
 
-		adc1_config_width(ADC_WIDTH_BIT_12);
-		adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
-		message.floatValue = dieSensorsReadADC(ADC1_CHANNEL_0) * 2;
+		message.floatValue = dieSensorsGetTemperature();
 
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
@@ -162,7 +161,9 @@ static void dieSensorsBatteryVoltageTask(void * arg){
 
 		vTaskDelay(delay / portTICK_RATE_MS);
 
-		message.floatValue = hall_sensor_read();
+		adc1_config_width(ADC_WIDTH_BIT_12);
+		adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
+		message.floatValue = dieSensorsReadADC(ADC1_CHANNEL_0) * 2;
 
 		nvsLength = sizeof(message.deviceName);
 		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
@@ -176,7 +177,23 @@ static void dieSensorsBatteryVoltageTask(void * arg){
 }
 
 void dieSensorsInit(void) {
-	// xTaskCreate(&dieSensorsTask, "dieSensors", 4096, NULL, 10, NULL);
+
+	//Characterize ADC at particular atten
+    adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, 3300, adc_chars);
+
+    //Check type of calibration value used to characterize ADC
+    if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
+    	ESP_LOGW(TAG, "ADC eFuse Vref will be used");
+    }
+
+    else if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
+    	ESP_LOGW(TAG, "ADC Two Point will be used");
+    }
+
+    else {
+    	ESP_LOGW(TAG, "ADC Default will be used");
+    }
 
 	xTaskCreate(&dieSensorsTemperatureTask, "dieSensorsTemp", 4096, NULL, 10, NULL);
 	xTaskCreate(&dieSensorsHallEffectTask, "dieSensorsHall", 4096, NULL, 10, NULL);

@@ -36,7 +36,7 @@ body .right{
 textarea, input, select, button{
 	background-color:#262626;
 	color: #ede5ff;
-	padding:0px;
+	padding:0px;padding-left: 3px;
 	margin:0px;
 	border: 0;
 	font-size: 14px;
@@ -68,6 +68,8 @@ button{
 	padding: 3px;
     margin-bottom: -5px;
     border:1px solid #ffffff;
+    border-radius: 5px;
+    max-width: 400px;
 }
 
 .roundTop .input{
