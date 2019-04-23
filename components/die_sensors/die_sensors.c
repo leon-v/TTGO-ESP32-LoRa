@@ -43,13 +43,11 @@ static int dieSensorsGetTemperature (void) {
 static float dieSensorsReadADC(adc1_channel_t channel) {
 
 	unsigned long long int result = 0;
-	int count = 1000;
+	int count = 25;
 
 	for (int i = 0; i < count; i++) {
-		ets_delay_us(1);
+		ets_delay_us(2); // Reduces noise on ADC somehow
 		result+= esp_adc_cal_raw_to_voltage(adc1_get_raw(channel), adc_chars);
-		// result+= adc1_get_raw(channel);
-
 	}
 
 	result = ( (float) result) / count;

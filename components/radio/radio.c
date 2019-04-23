@@ -15,6 +15,8 @@
 #define TAG "Radio"
 #define ENC_TEST_CHAR 0xAB
 
+#define LORA_IRQ 26
+
 static xQueueHandle radioQueue = NULL;
 
 static char loraKey[CONFIG_HTTP_NVS_MAX_STRING_LENGTH] = {0};
@@ -208,12 +210,12 @@ static void radioLoraSetRx(void) {
 }
 
 static void radioLoraRx(void) {
-	int length;
-	unsigned char buffer[sizeof(message_t)];
-	message_t message;
 
-	radioLoraSetRx();
 	while(lora_received()) {
+
+		int length;
+		unsigned char buffer[sizeof(message_t)];
+		message_t message;
 
 		length = sizeof(message_t);
 		length = lora_receive_packet(buffer, length);
@@ -245,8 +247,6 @@ static void radioLoraRx(void) {
 		}
 
 		messageIn(&message, "lora");
-
-		radioLoraSetRx();
 	}
 }
 
@@ -256,21 +256,41 @@ static void radioTask(void * arg){
 
 	while (1){
 
-		radioLoraRx();
+		if (xQueueReceive(radioQueue, &message, 4000 / portTICK_RATE_MS)) {
 
-		if (xQueueReceive(radioQueue, &message, 2)) {
-			radioLoRaSendRadioMessage(&message);
+			if (message.valueType != MESSAGE_INTERRUPT){
+				radioLoRaSendRadioMessage(&message);
+			}
+			else{
+				ESP_LOGW(TAG, "GPIO[%d] intr, val: %d\n", message.intValue, gpio_get_level(message.intValue));
+			}
+
+			radioLoraRx();
 		}
 
+		radioLoraSetRx();
 	}
 
 	vTaskDelete(NULL);
 }
 
 void radioLoRaQueueAdd(message_t * message){
+
 	if (uxQueueSpacesAvailable(radioQueue)) {
 		xQueueSend(radioQueue, message, 0);
 	}
+}
+
+static void radioLoraISR(void * arg){
+
+	message_t message;
+
+	message.valueType = MESSAGE_INTERRUPT;
+	message.intValue = (uint32_t) arg;
+
+	// if (uxQueueSpacesAvailable(radioQueue)) {
+		xQueueSendFromISR(radioQueue, &message, 0);
+	// }
 }
 
 void radioInit(void){
@@ -301,11 +321,32 @@ void radioInit(void){
 		ESP_LOGE(TAG, "aes_encrypt_init failed");
 	}
 
+	radioQueue = xQueueCreate(4, sizeof(message_t));
+
+	gpio_config_t io_conf;
+    //disable interrupt
+    io_conf.intr_type = GPIO_PIN_INTR_ANYEDGE;
+    //set as output mode
+    io_conf.mode = GPIO_MODE_INPUT;
+    //bit mask of the pins that you want to set,e.g.GPIO18/19
+    io_conf.pin_bit_mask = (0x01 << LORA_IRQ);
+    //disable pull-down mode
+    io_conf.pull_down_en = 0;
+    //disable pull-up mode
+    io_conf.pull_up_en = 0;
+    //configure GPIO with the given settings
+    gpio_config(&io_conf);
+
+    //install gpio isr service
+    gpio_install_isr_service(ESP_INTR_FLAG_LOWMED);
+    //hook isr handler for specific gpio pin
+    gpio_isr_handler_add(LORA_IRQ, radioLoraISR, (void*) LORA_IRQ);
+
+
 	lora_init();
 	lora_set_frequency(loraFrequency);
 	lora_enable_crc();
 
-	radioQueue = xQueueCreate(4, sizeof(message_t));
 
 	xTaskCreate(&radioTask, "radioTask", 4096, NULL, 10, NULL);
 }

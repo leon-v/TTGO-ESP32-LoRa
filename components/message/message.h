@@ -6,6 +6,7 @@ enum messageType_t {
 	MESSAGE_FLOAT,
 	MESSAGE_DOUBLE,
 	MESSAGE_STRING,
+	MESSAGE_INTERRUPT
 };
 
 typedef struct{
