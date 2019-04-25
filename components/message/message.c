@@ -92,7 +92,7 @@ void messageIn(message_t * messagePointer, const char * from){
 
 	if ((routing >> DISPLAY) & 0x01){
 		ESP_LOGI(TAG, "Forwarding to Display");
-		displayQueueAdd(displayQueueAdd);
+		displayQueueAdd(messagePointer);
 	}
 
 }

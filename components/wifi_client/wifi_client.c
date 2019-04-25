@@ -1,7 +1,12 @@
 #include <esp_wifi.h>
 #include <nvs.h>
+#include <esp_log.h>
 
 #include "wifi.h"
+
+#define TAG "WiFiClient"
+
+#define IDLE_CONFIG_BIT 0
 
 void wifiClientInit(void) {
 
@@ -9,15 +14,17 @@ void wifiClientInit(void) {
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 
+    wifi_config_t wifi_config = {
+	    .sta = {
+	        .ssid = "",
+	        .password = ""
+	    },
+	};
+
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
 
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = "",
-            .password = ""
-        },
-    };
+
 
     nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
@@ -34,13 +41,11 @@ void wifiClientInit(void) {
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
 
     // esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
     esp_wifi_set_ps(WIFI_PS_NONE);
 
-
-    printf ("WiFI connect to ap \n");
+	ESP_LOGI(TAG, "WiFI Connecting to AP");
 }
 
 void wifiClientResetNVS(void){
@@ -52,6 +57,12 @@ void wifiClientResetNVS(void){
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "wifiPassword", "password"));
+
+	unsigned char idleDisable;
+	ESP_ERROR_CHECK(nvs_get_u8(nvsHandle, "idleDisable", &idleDisable));
+	idleDisable|= (0x01 << IDLE_CONFIG_BIT);
+	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "idleDisable", idleDisable));
+
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);

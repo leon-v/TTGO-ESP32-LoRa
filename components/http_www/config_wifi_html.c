@@ -6,6 +6,7 @@ static const char  pageEnd[]	asm("_binary_config_wifi_html_end");
 static const ssiTag_t ssiTags[] = {
 	{"wifiSSID", 		SSI_TYPE_TEXT},
 	{"wifiPassword",	SSI_TYPE_PASSWORD},
+	{"idleDisable>>0",	SSI_TYPE_CHECKBOX},
 };
 
 static esp_err_t handler(httpd_req_t *req) {

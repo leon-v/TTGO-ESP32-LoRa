@@ -131,7 +131,6 @@ static void elasticTask(void *arg){
 	strcat(url, uniqueName);
 	strcat(url, "/router");
 
-
 	nvs_close(nvsHandle);
 
 	struct tm timeinfo;
@@ -142,7 +141,12 @@ static void elasticTask(void *arg){
 
 		vTaskDelay(2); // Delay for 2 ticks to allow scheduler time to execute
 
-		EventBits_t eventBits = xEventGroupWaitBits(wifiGetEventGroup(), WIFI_CONNECTED_BIT | TIME_READY_BIT, false, true, 5000 / portTICK_RATE_MS);
+		message_t message;
+		if (!xQueueReceive(elasticQueue, &message, 4000 / portTICK_RATE_MS)) {
+			continue;
+		}
+
+		EventBits_t eventBits = xEventGroupWaitBits(wifiGetEventGroup(), WIFI_CONNECTED_BIT | TIME_READY_BIT, false, true, 4000 / portTICK_RATE_MS);
 
 		if (!(eventBits & WIFI_CONNECTED_BIT)) {
 			continue;
@@ -152,85 +156,77 @@ static void elasticTask(void *arg){
 			continue;
 		}
 
-		message_t message;
-		// message_t
+		cJSON * request;
+		request = cJSON_CreateObject();
 
-		if (xQueueReceive(elasticQueue, &message, 4000 / portTICK_RATE_MS)) {
+		cJSON_AddItemToObject(request, "deviceName", cJSON_CreateString(message.deviceName));
 
-			cJSON * request;
-			request = cJSON_CreateObject();
+		cJSON_AddItemToObject(request, "sensorName", cJSON_CreateString(message.sensorName));
 
-			cJSON_AddItemToObject(request, "deviceName", cJSON_CreateString(message.deviceName));
+		char deviceSensorName[sizeof(message.deviceName) + sizeof(message.sensorName)];
+		strcpy(deviceSensorName, message.deviceName);
+		strcat(deviceSensorName, "/");
+		strcat(deviceSensorName, message.sensorName);
 
-			cJSON_AddItemToObject(request, "sensorName", cJSON_CreateString(message.sensorName));
+		char valueString[16] = {0};
+		switch (message.valueType){
+			case MESSAGE_INT:
+				cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateNumber(message.intValue));
+				cJSON_AddItemToObject(request, "value", cJSON_CreateNumber(message.intValue));
+			break;
 
-			char deviceSensorName[sizeof(message.deviceName) + sizeof(message.sensorName)];
-			strcpy(deviceSensorName, message.deviceName);
-			strcat(deviceSensorName, "/");
-			strcat(deviceSensorName, message.sensorName);
+			case MESSAGE_FLOAT:
+				sprintf(valueString, "%.4f", message.floatValue);
+				cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateRaw(valueString));
+				cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
+			break;
 
-			char valueString[16] = {0};
-			switch (message.valueType){
-				case MESSAGE_INT:
-					cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateNumber(message.intValue));
-					cJSON_AddItemToObject(request, "value", cJSON_CreateNumber(message.intValue));
-				break;
+			case MESSAGE_DOUBLE:
+				sprintf(valueString, "%.8f", message.doubleValue);
+				cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateRaw(valueString));
+				cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
+			break;
 
-				case MESSAGE_FLOAT:
-					sprintf(valueString, "%.4f", message.floatValue);
-					cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateRaw(valueString));
-					cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
-				break;
-
-				case MESSAGE_DOUBLE:
-					sprintf(valueString, "%.8f", message.doubleValue);
-					cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateRaw(valueString));
-					cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
-				break;
-
-				case MESSAGE_STRING:
-					cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateString(message.stringValue));
-					cJSON_AddItemToObject(request, "value", cJSON_CreateString(message.stringValue));
-				break;
-			}
-
-			time_t now;
-			time(&now);
-			localtime_r(&now, &timeinfo);
-
-			char timestamp[64] = "";
-    		strftime(timestamp, sizeof(timestamp), "%Y/%m/%d %H:%M:%S", &timeinfo);
-			cJSON_AddItemToObject(request, "timestamp", cJSON_CreateString(timestamp));
-
-			char * postData = cJSON_Print(request);
-
-			// ESP_LOGI(TAG, "%s", postData);
-
-			esp_http_client_config_t config = {
-				.url = url,
-				.event_handler = elasticHTTPEventHandler,
-				.auth_type = HTTP_AUTH_TYPE_BASIC,
-				.method = HTTP_METHOD_POST,
-			};
-
-			esp_http_client_handle_t client = esp_http_client_init(&config);
-
-			err = esp_http_client_set_method(client, HTTP_METHOD_POST);
-
-			err = esp_http_client_set_post_field(client, postData, strlen(postData));
-
-			err = esp_http_client_set_header(client, "Content-Type", "application/json");
-
-			err = esp_http_client_perform(client);
-
-			esp_http_client_cleanup(client);
-
-			free(postData); // Why not free in cJSON_Delete !?
-			cJSON_Delete(request);
+			case MESSAGE_STRING:
+				cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateString(message.stringValue));
+				cJSON_AddItemToObject(request, "value", cJSON_CreateString(message.stringValue));
+			break;
 		}
+
+		time_t now;
+		time(&now);
+		localtime_r(&now, &timeinfo);
+
+		char timestamp[64] = "";
+		strftime(timestamp, sizeof(timestamp), "%Y/%m/%d %H:%M:%S", &timeinfo);
+		cJSON_AddItemToObject(request, "timestamp", cJSON_CreateString(timestamp));
+
+		char * postData = cJSON_Print(request);
+
+		// ESP_LOGI(TAG, "%s", postData);
+
+		esp_http_client_config_t config = {
+			.url = url,
+			.event_handler = elasticHTTPEventHandler,
+			.auth_type = HTTP_AUTH_TYPE_BASIC,
+			.method = HTTP_METHOD_POST,
+		};
+
+		esp_http_client_handle_t client = esp_http_client_init(&config);
+
+		err = esp_http_client_set_method(client, HTTP_METHOD_POST);
+
+		err = esp_http_client_set_post_field(client, postData, strlen(postData));
+
+		err = esp_http_client_set_header(client, "Content-Type", "application/json");
+
+		err = esp_http_client_perform(client);
+
+		esp_http_client_cleanup(client);
+
+		free(postData); // Why not free in cJSON_Delete !?
+		cJSON_Delete(request);
 	}
-
-
 }
 
 void elasticQueueAdd(message_t * message){
@@ -244,6 +240,8 @@ void elasticInit(void) {
 	elasticQueue = xQueueCreate(4, sizeof(message_t));
 
 	xTaskCreate(&elasticTask, "elasticTask", 8192, NULL, 13, NULL);
+
+	wifiUsed();
 }
 
 void elasticResetNVS(void) {

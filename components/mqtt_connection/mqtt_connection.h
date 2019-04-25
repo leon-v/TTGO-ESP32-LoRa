@@ -11,6 +11,8 @@
 void mqttConnectionInit(void);
 void mqttConnectionResetNVS(void);
 void mqttConnectionQueueAdd(message_t * message);
+void mqttConnectionWiFiConnected(void);
+void mqttConnectionWiFiDisconnected(void);
 
 #define MQTT_CONNECTED_BIT	BIT0
 

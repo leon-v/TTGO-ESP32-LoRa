@@ -261,9 +261,6 @@ static void radioTask(void * arg){
 			if (message.valueType != MESSAGE_INTERRUPT){
 				radioLoRaSendRadioMessage(&message);
 			}
-			else{
-				ESP_LOGW(TAG, "GPIO[%d] intr, val: %d\n", message.intValue, gpio_get_level(message.intValue));
-			}
 
 			radioLoraRx();
 		}

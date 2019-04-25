@@ -7,11 +7,12 @@
 #include <esp_log.h>
 
 #include "wifi.h"
-#include "http.h"
+// #include "http.h"
 #include "mqtt_connection.h"
 #include "message.h"
 
-esp_mqtt_client_handle_t client;
+static esp_mqtt_client_handle_t client;
+static esp_mqtt_client_config_t mqtt_cfg;
 
 static xQueueHandle mqttConnectionQueue = NULL;
 
@@ -52,6 +53,7 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
 		break;
 
 		case MQTT_EVENT_BEFORE_CONNECT:
+			// wifiUsed();
 		break;
 
         case MQTT_EVENT_DISCONNECTED:
@@ -60,20 +62,24 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
 		break;
 
         case MQTT_EVENT_SUBSCRIBED:
+        	wifiUsed();
             ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
             msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
             ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
 		break;
 
         case MQTT_EVENT_UNSUBSCRIBED:
+        	wifiUsed();
             ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
 		break;
 
         case MQTT_EVENT_PUBLISHED:
+        	wifiUsed();
             // ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
 		break;
 
         case MQTT_EVENT_DATA:
+        	wifiUsed();
             ESP_LOGI(TAG, "MQTT_EVENT_DATA");
             ESP_LOGI(TAG, "TOPIC=%.*s\r\n", event->topic_len, event->topic);
             ESP_LOGI(TAG, "DATA=%.*s\r\n", event->data_len, event->data);
@@ -87,19 +93,7 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
     return ESP_OK;
 }
 
-static void mqttConnectionTask(void *arg){
-
-	ESP_LOGI(TAG, "mqttConnectionTask");
-
-	EventBits_t eventBits = xEventGroupWaitBits(wifiGetEventGroup(), WIFI_CONNECTED_BIT, false, true, portMAX_DELAY);
-
-	if (!(eventBits & WIFI_CONNECTED_BIT)) {
-		ESP_LOGI(TAG, "Timed out waiting for WiFI. Ending MQTT\n");
-		vTaskDelete(NULL);
-		return;
-	}
-
-	ESP_LOGI(TAG, "Starting...\n");
+void mqttConnectionSetClient(void){
 
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
@@ -132,68 +126,78 @@ static void mqttConnectionTask(void *arg){
 
 	ESP_LOGI(TAG, "Got MQTT host details...\n");
 
-	esp_mqtt_client_config_t mqtt_cfg = {
-        .host = host,
-        .port = port,
-        .client_id = uniqueName,
-        .username = username,
-        .password = password,
-        .keepalive = keepalive,
-        .event_handle = mqttConnectionEventHandler,
-        // .user_context = (void *)your_context
-    };
+	mqtt_cfg.host = host;
+    mqtt_cfg.port = port;
+    mqtt_cfg.client_id = uniqueName;
+    mqtt_cfg.username = username;
+    mqtt_cfg.password = password;
+    mqtt_cfg.keepalive = keepalive;
+    mqtt_cfg.event_handle = mqttConnectionEventHandler;
+    // mqtt_cfg.user_context = (void *)your_context;
 
     ESP_LOGI(TAG, "Connecting...\n");
 
     client = esp_mqtt_client_init(&mqtt_cfg);
-    esp_mqtt_client_start(client);
+}
+void mqttConnectionWiFiConnected(void){
+	mqttConnectionSetClient();
+	esp_mqtt_client_start(client);
+}
+
+void mqttConnectionWiFiDisconnected(void){
+	esp_mqtt_client_stop(client);
+}
+
+static void mqttConnectionTask(void *arg){
 
 	while (true){
 
-		vTaskDelay(2); // Delay for 2 ticks to allow scheduler time to execute
-
-		eventBits = xEventGroupWaitBits(mqttConnectionEventGroup, MQTT_CONNECTED_BIT, false, true, 4000 / portTICK_RATE_MS);
-
-		if (!(eventBits & MQTT_CONNECTED_BIT)) {
+		message_t message;
+		if (!xQueueReceive(mqttConnectionQueue, &message, 4000 / portTICK_RATE_MS)) {
 			continue;
 		}
 
-		message_t message;
-		if (xQueueReceive(mqttConnectionQueue, &message, 4000 / portTICK_RATE_MS)){
+		wifiUsed();
 
-			char mqttTopic[sizeof(message.deviceName) + sizeof(message.sensorName) + 1] = {0};
-			char mqttValue[sizeof(message.stringValue)] = {0};
+		EventBits_t eventBits = xEventGroupWaitBits(mqttConnectionEventGroup, MQTT_CONNECTED_BIT, false, true, 10000 / portTICK_RATE_MS);
 
-			strcpy(mqttTopic, message.deviceName);
-			strcat(mqttTopic, "/");
-			strcat(mqttTopic, message.sensorName);
-
-			switch (message.valueType){
-
-				case MESSAGE_INT:
-					sprintf(mqttValue, "%d", message.intValue);
-				break;
-
-				case MESSAGE_FLOAT:
-					sprintf(mqttValue, "%.4f", message.floatValue);
-				break;
-
-				case MESSAGE_DOUBLE:
-					sprintf(mqttValue, "%.8f", message.doubleValue);
-				break;
-
-				case MESSAGE_STRING:
-					sprintf(mqttValue, "%s", message.stringValue);
-				break;
-			}
-
-			int msg_id;
-			msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
-			ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttTopic, mqttValue, msg_id);
-			ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+		if (!(eventBits & MQTT_CONNECTED_BIT)) {
+			ESP_LOGE(TAG, "Not connected after message received. Skipping message.");
+			continue;
 		}
-	}
 
+		char mqttTopic[sizeof(message.deviceName) + sizeof(message.sensorName) + 1] = {0};
+		char mqttValue[sizeof(message.stringValue)] = {0};
+
+		strcpy(mqttTopic, message.deviceName);
+		strcat(mqttTopic, "/");
+		strcat(mqttTopic, message.sensorName);
+
+		switch (message.valueType){
+
+			case MESSAGE_INT:
+				sprintf(mqttValue, "%d", message.intValue);
+			break;
+
+			case MESSAGE_FLOAT:
+				sprintf(mqttValue, "%.4f", message.floatValue);
+			break;
+
+			case MESSAGE_DOUBLE:
+				sprintf(mqttValue, "%.8f", message.doubleValue);
+			break;
+
+			case MESSAGE_STRING:
+				sprintf(mqttValue, "%s", message.stringValue);
+			break;
+		}
+
+		int msg_id;
+		msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
+
+		ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttTopic, mqttValue, msg_id);
+		ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+	}
 }
 
 void mqttConnectionQueueAdd(message_t * message){
@@ -209,6 +213,8 @@ void mqttConnectionInit(void){
 	mqttConnectionQueue = xQueueCreate(4, sizeof(message_t));
 
 	xTaskCreate(&mqttConnectionTask, "mqttConnection", 4096, NULL, 13, NULL);
+
+	wifiUsed();
 }
 
 void mqttConnectionResetNVS(void) {

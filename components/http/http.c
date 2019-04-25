@@ -365,6 +365,8 @@ static void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bu
 
 esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength) {
 
+	wifiUsed();
+
 	char outBuffer[4096];
 
 	if (req->method == HTTP_POST){
@@ -391,6 +393,8 @@ void stop_webserver(httpd_handle_t server) {
 
 
 static httpd_handle_t start_webserver(void) {
+
+	wifiUsed();
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;

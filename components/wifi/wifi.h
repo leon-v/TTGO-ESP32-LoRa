@@ -11,6 +11,7 @@
 
 void wifiInit(void);
 EventGroupHandle_t wifiGetEventGroup(void);
+void wifiUsed(void);
 
 #define WIFI_CONNECTED_BIT	BIT0
 
