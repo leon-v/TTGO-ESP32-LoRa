@@ -230,6 +230,12 @@ static void httpReaplceSSI(char * outBuffer, const char * fileStart, const char 
 					sprintf(replaceSSIValue, "<input type=\"text\" name=\"%s\" value=\"%s\" />", ssiTag.key, nvsStringValue);
 				break;
 
+				case SSI_TYPE_DISAPLY_TEXT:
+					nvs_get_str(nvsHandle, ssiTag.key, nvsStringValue, &nvsLength);
+					nvsStringValue[nvsLength] = '\0';
+					sprintf(replaceSSIValue, "%s", nvsStringValue);
+				break;
+
 				case SSI_TYPE_TEXTAREA:
 					nvs_get_str(nvsHandle, ssiTag.key, nvsStringValue, &nvsLength);
 					nvsStringValue[nvsLength] = '\0';
@@ -327,6 +333,10 @@ static void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bu
 
 		switch (ssiTag.type) {
 
+			case SSI_TYPE_DISAPLY_TEXT:
+				// Display values should never save
+			break;
+
 			case SSI_TYPE_TEXT:
 			case SSI_TYPE_PASSWORD:
 			case SSI_TYPE_TEXTAREA:
@@ -402,7 +412,7 @@ static httpd_handle_t start_webserver(void) {
     config.max_uri_handlers = 32;
 
     // Start the httpd server
-    printf("http: Starting server on port: '%d'", config.server_port);
+    ESP_LOGI(TAG, "Starting server on port: %d", config.server_port);
     httpd_handle_t server;
 
     if (httpd_start(&server, &config) == ESP_OK) {

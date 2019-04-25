@@ -146,13 +146,19 @@ static void elasticTask(void *arg){
 			continue;
 		}
 
-		EventBits_t eventBits = xEventGroupWaitBits(wifiGetEventGroup(), WIFI_CONNECTED_BIT | TIME_READY_BIT, false, true, 4000 / portTICK_RATE_MS);
+		EventBits_t eventBits;
+
+		eventBits = xEventGroupWaitBits(wifiGetEventGroup(), WIFI_CONNECTED_BIT, false, true, 30000 / portTICK_RATE_MS);
 
 		if (!(eventBits & WIFI_CONNECTED_BIT)) {
+			ESP_LOGE(TAG, "Timed out waiting for WiFi. Skipping message.");
 			continue;
 		}
 
+		eventBits = xEventGroupWaitBits(dateTimeGetEventGroup(), TIME_READY_BIT, false, true, 30000 / portTICK_RATE_MS);
+
 		if (!(eventBits & TIME_READY_BIT)) {
+			ESP_LOGE(TAG, "Timed out waiting for time. Skipping message.");
 			continue;
 		}
 
@@ -172,24 +178,24 @@ static void elasticTask(void *arg){
 		switch (message.valueType){
 			case MESSAGE_INT:
 				cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateNumber(message.intValue));
-				cJSON_AddItemToObject(request, "value", cJSON_CreateNumber(message.intValue));
+				cJSON_AddItemToObject(request, "integer", cJSON_CreateNumber(message.intValue));
 			break;
 
 			case MESSAGE_FLOAT:
 				sprintf(valueString, "%.4f", message.floatValue);
 				cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateRaw(valueString));
-				cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
+				cJSON_AddItemToObject(request, "float", cJSON_CreateRaw(valueString));
 			break;
 
 			case MESSAGE_DOUBLE:
 				sprintf(valueString, "%.8f", message.doubleValue);
 				cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateRaw(valueString));
-				cJSON_AddItemToObject(request, "value", cJSON_CreateRaw(valueString));
+				cJSON_AddItemToObject(request, "double", cJSON_CreateRaw(valueString));
 			break;
 
 			case MESSAGE_STRING:
 				cJSON_AddItemToObject(request, deviceSensorName, cJSON_CreateString(message.stringValue));
-				cJSON_AddItemToObject(request, "value", cJSON_CreateString(message.stringValue));
+				cJSON_AddItemToObject(request, "string", cJSON_CreateString(message.stringValue));
 			break;
 		}
 
@@ -230,9 +236,13 @@ static void elasticTask(void *arg){
 }
 
 void elasticQueueAdd(message_t * message){
-	if (uxQueueSpacesAvailable(elasticQueue)) {
-		xQueueSend(elasticQueue, message, 0);
+
+	if (!uxQueueSpacesAvailable(elasticQueue)) {
+		ESP_LOGE(TAG, "No room in queue for message.");
+		return;
 	}
+
+	xQueueSend(elasticQueue, message, 0);
 }
 
 void elasticInit(void) {
@@ -254,5 +264,5 @@ void elasticResetNVS(void) {
 
 	nvs_close(nvsHandle);
 
-	messageNVSReset("elastic");
+	messageNVSReset("elastic", 0x00);
 }

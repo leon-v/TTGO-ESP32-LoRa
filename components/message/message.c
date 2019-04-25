@@ -97,7 +97,7 @@ void messageIn(message_t * messagePointer, const char * from){
 
 }
 
-void messageNVSReset(char * from){
+void messageNVSReset(char * from, unsigned char defaults){
 
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
@@ -106,7 +106,7 @@ void messageNVSReset(char * from){
 	strcpy(handle, from);
 	strcat(handle, "InRt");
 
-	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, handle, 0x00));
+	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, handle, defaults));
 
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 

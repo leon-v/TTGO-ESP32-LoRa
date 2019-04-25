@@ -159,7 +159,7 @@ static void mqttConnectionTask(void *arg){
 
 		wifiUsed();
 
-		EventBits_t eventBits = xEventGroupWaitBits(mqttConnectionEventGroup, MQTT_CONNECTED_BIT, false, true, 10000 / portTICK_RATE_MS);
+		EventBits_t eventBits = xEventGroupWaitBits(mqttConnectionEventGroup, MQTT_CONNECTED_BIT, false, true, 30000 / portTICK_RATE_MS);
 
 		if (!(eventBits & MQTT_CONNECTED_BIT)) {
 			ESP_LOGE(TAG, "Not connected after message received. Skipping message.");
@@ -200,10 +200,14 @@ static void mqttConnectionTask(void *arg){
 	}
 }
 
-void mqttConnectionQueueAdd(message_t * message){
-	if (uxQueueSpacesAvailable(mqttConnectionQueue)) {
-		xQueueSend(mqttConnectionQueue, message, 0);
+void mqttConnectionQueueAdd(message_t * message) {
+
+	if (!uxQueueSpacesAvailable(mqttConnectionQueue)) {
+		ESP_LOGE(TAG, "No room in queue for message.");
+		return;
 	}
+
+	xQueueSend(mqttConnectionQueue, message, 0);
 }
 
 void mqttConnectionInit(void){
@@ -238,5 +242,5 @@ void mqttConnectionResetNVS(void) {
 
 	nvs_close(nvsHandle);
 
-	messageNVSReset("mqtt");
+	messageNVSReset("mqtt", 0x00);
 }

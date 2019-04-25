@@ -10,6 +10,7 @@
 #include "freertos/event_groups.h"
 
 void wifiInit(void);
+void wifiResetNVS(void);
 EventGroupHandle_t wifiGetEventGroup(void);
 void wifiUsed(void);
 

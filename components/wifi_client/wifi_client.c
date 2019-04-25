@@ -6,8 +6,6 @@
 
 #define TAG "WiFiClient"
 
-#define IDLE_CONFIG_BIT 0
-
 void wifiClientInit(void) {
 
 	wifiInit();
@@ -57,11 +55,6 @@ void wifiClientResetNVS(void){
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "wifiPassword", "password"));
-
-	unsigned char idleDisable;
-	ESP_ERROR_CHECK(nvs_get_u8(nvsHandle, "idleDisable", &idleDisable));
-	idleDisable|= (0x01 << IDLE_CONFIG_BIT);
-	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "idleDisable", idleDisable));
 
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 

@@ -211,5 +211,5 @@ void dieSensorsResetNVS(void) {
 
 	nvs_close(nvsHandle);
 
-	messageNVSReset("dieSens");
+	messageNVSReset("dieSens", 0x00);
 }

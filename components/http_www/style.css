@@ -31,6 +31,7 @@ body .right{
     float: left;
     max-width: 800px;
     padding-left: 20px;
+	margin-top: 59px;
 }
 
 textarea, input, select, button{

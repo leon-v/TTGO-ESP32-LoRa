@@ -366,7 +366,7 @@ void radioResetNVS(void){
 
 	nvs_close(nvsHandle);
 
-	messageNVSReset("lora");
+	messageNVSReset("lora", 0x00);
 }
 
 /*

@@ -1,10 +1,16 @@
 #include <string.h>
 #include <esp_log.h>
+#include <nvs.h>
 
 #include "wifi.h"
 #include "mqtt_connection.h"
+#include "message.h"
 
 #define TAG "WiFi"
+
+#define IDLE_CONFIG_BIT 0
+
+static const char * ROUTE_NAME = "wifi";
 
 static EventGroupHandle_t wifiEventGroup;
 static char wifiEnabled = 0;
@@ -14,20 +20,37 @@ EventGroupHandle_t wifiGetEventGroup(void){
 	return wifiEventGroup;
 }
 
+int wifiIdleDisconnectEnabled(void){
+
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	unsigned char idleDisable;
+	ESP_ERROR_CHECK(nvs_get_u8(nvsHandle, "idleDisable", &idleDisable));
+
+	nvs_close(nvsHandle);
+
+	return (idleDisable >> IDLE_CONFIG_BIT) & 0x01;
+}
+
 void wifiIdleTimeout( TimerHandle_t xTimer ){
 
 	if (wifiEnabled){
 
-		mqttConnectionWiFiDisconnected();
+		ESP_LOGW(TAG, "WiFi idle timer triggered.");
 
-    	ESP_LOGW(TAG, "WiFi idle timer triggered. Disabling WiFi");
+		if (!wifiIdleDisconnectEnabled()){
+			return;
+		}
+
+		ESP_LOGW(TAG, "Disabling WiFi");
+
+		mqttConnectionWiFiDisconnected();
 
     	ESP_ERROR_CHECK(esp_wifi_stop());
 
     	wifiEnabled = 0;
 	}
-
-	ESP_LOGW(TAG, "WiFi Idle Timer Triggered");
 }
 
 void wifiUsed(void){
@@ -47,7 +70,26 @@ void wifiUsed(void){
     	wifiEnabled = 1;
 	}
 
-	ESP_LOGW(TAG, "WiFi Idle Timer Reset");
+	// ESP_LOGW(TAG, "WiFi Idle Timer Reset");
+}
+
+static void wifiGotIP(const ip4_addr_t *addr){
+
+	message_t message;
+	message.valueType = MESSAGE_STRING;
+
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	size_t nvsLength = sizeof(message.deviceName);
+	nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
+
+	nvs_close(nvsHandle);
+
+	strcpy(message.sensorName, "wifiIp");
+	strcpy(message.stringValue, ip4addr_ntoa(addr));
+
+	messageIn(&message, ROUTE_NAME);
 }
 
 static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){
@@ -60,7 +102,9 @@ static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){
         	break;
 
     	case SYSTEM_EVENT_STA_GOT_IP:
+    		wifiGotIP(&event->event_info.got_ip.ip_info.ip);
     		ESP_LOGI(TAG, "SYSTEM_EVENT_STA_GOT_IP");
+
         	xEventGroupSetBits(wifiEventGroup, WIFI_CONNECTED_BIT);
         	break;
 
@@ -110,6 +154,23 @@ void wifiInit(void) {
 	if (xTimerStart(idleTimer, 0) != pdPASS) {
 		ESP_LOGE(TAG, "Timer %d start error", timerId);
 	}
+}
+
+void wifiResetNVS(void){
+
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
+
+	unsigned char idleDisable;
+	ESP_ERROR_CHECK(nvs_get_u8(nvsHandle, "idleDisable", &idleDisable));
+	idleDisable&= ~(0x01 << IDLE_CONFIG_BIT); // Clear bit IDLE_CONFIG_BIT
+	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "idleDisable", idleDisable));
+
+	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
+
+	nvs_close(nvsHandle);
+
+	messageNVSReset("wifi", 0xFF);
 }
 
 

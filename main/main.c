@@ -112,6 +112,7 @@ void app_main(void) {
     	ESP_LOGW(TAG, "%s", disaply.text);
 
     	// Reset all NVS data so we always get known values and don't crash
+    	wifiResetNVS();
     	wifiClientResetNVS();
     	mqttConnectionResetNVS();
     	elasticResetNVS();

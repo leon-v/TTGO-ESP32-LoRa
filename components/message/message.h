@@ -27,6 +27,6 @@ enum messageEndpoint_t {
 };
 
 void messageIn(message_t * messagePointer, const char * from);
-void messageNVSReset(char * from);
+void messageNVSReset(char * from, unsigned char defaults);
 
 #endif

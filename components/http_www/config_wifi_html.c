@@ -7,6 +7,10 @@ static const ssiTag_t ssiTags[] = {
 	{"wifiSSID", 		SSI_TYPE_TEXT},
 	{"wifiPassword",	SSI_TYPE_PASSWORD},
 	{"idleDisable>>0",	SSI_TYPE_CHECKBOX},
+	{"wifiInRt>>0",		SSI_TYPE_CHECKBOX},
+	{"wifiInRt>>1",		SSI_TYPE_CHECKBOX},
+	{"wifiInRt>>2",		SSI_TYPE_CHECKBOX},
+	{"wifiInRt>>3",		SSI_TYPE_CHECKBOX},
 };
 
 static esp_err_t handler(httpd_req_t *req) {
