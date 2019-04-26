@@ -5,6 +5,7 @@
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
 #include <esp_log.h>
+#include <sys/param.h>
 
 #include "wifi.h"
 // #include "http.h"
@@ -20,6 +21,8 @@ static EventGroupHandle_t mqttConnectionEventGroup;
 
 static const char *TAG = "MQTT";
 
+static const char * ROUTE_NAME = "mqtt";
+
 static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
@@ -28,20 +31,20 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
         	xEventGroupSetBits(mqttConnectionEventGroup, MQTT_CONNECTED_BIT);
-
-   //      	beelineMessage_t beelineMessage;
-   //      	strcpy(beelineMessage.name, "TestName");
-			// strcpy(beelineMessage.sensor, "TestSensor");
-			// strcpy(beelineMessage.value, "TestValue");
-
-			// xQueueSend(mqttConnectionQueue, &beelineMessage, 0);
-
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-            msg_id = esp_mqtt_client_publish(client, "/topic/qos1", "data_3", 0, 1, 0);
-            ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
 
-            // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos0", 0);
-            // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+            size_t nvsLength;
+            nvs_handle nvsHandle;
+			ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+			char mqttSubTopic[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
+			nvsLength = sizeof(mqttSubTopic);
+			nvs_get_str(nvsHandle, "mqttSubTopic", mqttSubTopic, &nvsLength);
+
+			nvs_close(nvsHandle);
+
+            msg_id = esp_mqtt_client_subscribe(client, mqttSubTopic, 0);
+            ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
             // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
             // ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
@@ -80,9 +83,71 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
 
         case MQTT_EVENT_DATA:
         	wifiUsed();
-            ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-            ESP_LOGI(TAG, "TOPIC=%.*s\r\n", event->topic_len, event->topic);
-            ESP_LOGI(TAG, "DATA=%.*s\r\n", event->data_len, event->data);
+
+
+
+        	char topic[64] = {0};
+        	strncpy(topic, event->topic,  MIN(event->topic_len, sizeof(topic)));
+
+        	char value[64] = {0};
+        	strncpy(value, event->data,  MIN(event->data_len, sizeof(value)));
+
+        	ESP_LOGI(TAG, "topic %s", topic);
+
+        	const char * delim = "/";
+        	char * subTopic = strtok(topic, delim);
+
+        	char * subTopics[3] = {NULL, NULL, NULL};
+
+        	int index = 0;
+        	while (subTopic != NULL){
+
+        		if (index > 1) {
+        			subTopics[0] = subTopics[1];
+        		}
+        		if (index > 0) {
+        			subTopics[1] = subTopics[2];
+        		}
+
+        		subTopics[2] = subTopic;
+
+        		index++;
+
+        		subTopic = strtok(NULL, delim);
+        	}
+
+        	if (!(subTopics[0] && subTopics[1] && subTopics[2])) {
+        		ESP_LOGE(TAG, "Unable to get last 3 sub topics device/sensor/valueype");
+        		break;
+        	}
+
+        	message_t message;
+
+        	strcpy(message.deviceName, subTopics[0]);
+        	strcpy(message.sensorName, subTopics[1]);
+
+        	if (strcmp(subTopics[2], "int") == 0) {
+				message.valueType = MESSAGE_INT;
+				message.intValue = atoi(value);
+			}
+			else if (strcmp(subTopics[2], "float") == 0) {
+				message.valueType = MESSAGE_FLOAT;
+				message.floatValue = atof(value);
+			}
+			else if (strcmp(subTopics[2], "double") == 0) {
+				message.valueType = MESSAGE_DOUBLE;
+				message.doubleValue = atof(value);
+			}
+			else if (strcmp(subTopics[2], "string") == 0) {
+				message.valueType = MESSAGE_STRING;
+				strcpy(message.stringValue, value);
+			}
+			else{
+				ESP_LOGE(TAG, "Unknown type '%s'", subTopics[2]);
+        		break;
+			}
+
+			messageIn(&message, ROUTE_NAME);
 		break;
 
         case MQTT_EVENT_ERROR:
@@ -169,6 +234,7 @@ static void mqttConnectionTask(void *arg){
 		char mqttTopic[sizeof(message.deviceName) + sizeof(message.sensorName) + 1] = {0};
 		char mqttValue[sizeof(message.stringValue)] = {0};
 
+		strcat(mqttTopic, "beeline/");
 		strcpy(mqttTopic, message.deviceName);
 		strcat(mqttTopic, "/");
 		strcat(mqttTopic, message.sensorName);
@@ -238,6 +304,9 @@ void mqttConnectionResetNVS(void) {
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "mqttKeepalive", 30));
+	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
+
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttSubTopic", "/beeline#"));
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);

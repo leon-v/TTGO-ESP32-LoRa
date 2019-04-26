@@ -149,7 +149,7 @@ void wifiInit(void) {
     ESP_ERROR_CHECK(esp_event_loop_init(wifiEventHandler, NULL));
 
     int timerId = 1;
-    idleTimer = xTimerCreate("wiFiIdle", 30000 / portTICK_RATE_MS, pdTRUE, (void *) timerId, wifiIdleTimeout);
+    idleTimer = xTimerCreate("wiFiIdle", 60000 / portTICK_RATE_MS, pdTRUE, (void *) timerId, wifiIdleTimeout);
 
 	if (xTimerStart(idleTimer, 0) != pdPASS) {
 		ESP_LOGE(TAG, "Timer %d start error", timerId);

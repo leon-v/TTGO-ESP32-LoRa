@@ -13,6 +13,7 @@ static const ssiTag_t ssiTags[] = {
 	{"mqttInRt>>1",		SSI_TYPE_CHECKBOX},
 	{"mqttInRt>>2",		SSI_TYPE_CHECKBOX},
 	{"mqttInRt>>3",		SSI_TYPE_CHECKBOX},
+	{"mqttSubTopic",	SSI_TYPE_TEXT}
 };
 
 static esp_err_t handler(httpd_req_t *req) {
