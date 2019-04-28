@@ -1,6 +1,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/queue.h>
+#include <freertos/timers.h>
 #include <nvs.h>
 #include <string.h>
 #include <driver/gpio.h>
@@ -14,6 +15,7 @@
 
 #define TAG "Radio"
 #define ENC_TEST_CHAR 0xAB
+#define IDLE_CONFIG_BIT 1
 
 #define LORA_IRQ 26
 
@@ -25,6 +27,52 @@ static void * aesDecryptContext;
 
 static unsigned int loraTXSyncWord;
 static unsigned int loraRXSyncWord;
+
+static char radioLoRaRXEnabled = 1;
+static TimerHandle_t idleTimer;
+
+int radioLoRaRxIdleDisableEnabled(void){
+
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	unsigned char idleDisable;
+	ESP_ERROR_CHECK(nvs_get_u8(nvsHandle, "idleDisable", &idleDisable));
+
+	nvs_close(nvsHandle);
+
+	return (idleDisable >> IDLE_CONFIG_BIT) & 0x01;
+}
+
+void radioLoRaIdleTimeout( TimerHandle_t xTimer ){
+
+	if (radioLoRaRXEnabled){
+
+		ESP_LOGW(TAG, "LoRa idle timer triggered.");
+
+		if (!radioLoRaRxIdleDisableEnabled()){
+			return;
+		}
+
+		ESP_LOGW(TAG, "Disabling LoRa RX");
+
+    	radioLoRaRXEnabled = 0;
+	}
+}
+
+static void radioLoRaRXUsed(void){
+
+	if (xTimerReset(idleTimer, 0) != pdPASS) {
+		ESP_LOGE(TAG, "Timer reset error");
+	}
+
+	if (!radioLoRaRXEnabled){
+
+    	ESP_LOGW(TAG, "LoRa RX idle timer reset. Enabling RX");
+
+    	radioLoRaRXEnabled = 1;
+	}
+}
 
 static void radioPrintBuffer(const char * tag, unsigned char * buffer, int length){
 
@@ -227,6 +275,8 @@ static void radioLoraRx(void) {
 			continue;
 		}
 
+		radioLoRaRXUsed();
+
 		radioCreateMessage(&message, buffer, length);
 
 		ESP_LOGI(TAG, "LoRa heard |%s|%s|%d|%d", message.deviceName, message.sensorName, message.valueType, length);
@@ -256,16 +306,27 @@ static void radioTask(void * arg){
 
 	while (1){
 
-		if (xQueueReceive(radioQueue, &message, 4000 / portTICK_RATE_MS)) {
-
-			if (message.valueType != MESSAGE_INTERRUPT){
-				radioLoRaSendRadioMessage(&message);
-			}
-
-			radioLoraRx();
+		if ( (!radioLoRaRxIdleDisableEnabled()) || (radioLoRaRXEnabled) ) {
+			radioLoraSetRx();
+		}
+		else{
+			lora_sleep();
 		}
 
-		radioLoraSetRx();
+		if (!xQueueReceive(radioQueue, &message, 4000 / portTICK_RATE_MS)) {
+			continue;
+		}
+
+		// lora_idle();
+
+		if (message.valueType != MESSAGE_INTERRUPT){
+			radioLoRaSendRadioMessage(&message);
+			continue;
+		}
+
+		if (message.valueType == MESSAGE_INTERRUPT){
+			radioLoraRx();
+		}
 	}
 
 	vTaskDelete(NULL);
@@ -339,13 +400,23 @@ void radioInit(void){
     //hook isr handler for specific gpio pin
     gpio_isr_handler_add(LORA_IRQ, radioLoraISR, (void*) LORA_IRQ);
 
+    ESP_ERROR_CHECK(gpio_wakeup_enable(LORA_IRQ, GPIO_INTR_HIGH_LEVEL));
+    ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
+
 
 	lora_init();
 	lora_set_frequency(loraFrequency);
 	lora_enable_crc();
 
-
 	xTaskCreate(&radioTask, "radioTask", 4096, NULL, 10, NULL);
+
+
+	int timerId = 1;
+    idleTimer = xTimerCreate("radioLoRaIdle", 60000 / portTICK_RATE_MS, pdTRUE, (void *) timerId, radioLoRaIdleTimeout);
+
+	if (xTimerStart(idleTimer, 0) != pdPASS) {
+		ESP_LOGE(TAG, "Timer %d start error", timerId);
+	}
 }
 
 
@@ -361,6 +432,11 @@ void radioResetNVS(void){
 	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "loraToMQTT", 0));
 	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "loraToElastic", 0));
 	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "loraToLoRa", 0));
+
+	unsigned char idleDisable;
+	nvs_get_u8(nvsHandle, "idleDisable", &idleDisable);
+	idleDisable&= ~(0x01 << IDLE_CONFIG_BIT); // Clear bit IDLE_CONFIG_BIT
+	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "idleDisable", idleDisable));
 
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 

@@ -40,8 +40,7 @@ void wifiClientInit(void) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
 
-    // esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
-    esp_wifi_set_ps(WIFI_PS_NONE);
+    esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
 
 	ESP_LOGI(TAG, "WiFI Connecting to AP");
 }

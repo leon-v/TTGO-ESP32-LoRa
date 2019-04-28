@@ -13,7 +13,8 @@ static const ssiTag_t ssiTags[] = {
 	{"mqttInRt>>1",		SSI_TYPE_CHECKBOX},
 	{"mqttInRt>>2",		SSI_TYPE_CHECKBOX},
 	{"mqttInRt>>3",		SSI_TYPE_CHECKBOX},
-	{"mqttSubTopic",	SSI_TYPE_TEXT}
+	{"mqttOutTopic",	SSI_TYPE_TEXT},
+	{"mqttInTopic",		SSI_TYPE_TEXT},
 };
 
 static esp_err_t handler(httpd_req_t *req) {
@@ -32,7 +33,6 @@ static httpd_uri_t postURI = {
     .method   = HTTP_POST,
     .handler  = handler
 };
-
 
 
 void httpPageConfigMQTTHTMLInit(httpd_handle_t server) {

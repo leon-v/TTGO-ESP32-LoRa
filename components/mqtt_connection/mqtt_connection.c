@@ -37,13 +37,13 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
             nvs_handle nvsHandle;
 			ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
-			char mqttSubTopic[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
-			nvsLength = sizeof(mqttSubTopic);
-			nvs_get_str(nvsHandle, "mqttSubTopic", mqttSubTopic, &nvsLength);
+			char mqttInTopic[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
+			nvsLength = sizeof(mqttInTopic);
+			nvs_get_str(nvsHandle, "mqttInTopic", mqttInTopic, &nvsLength);
 
 			nvs_close(nvsHandle);
 
-            msg_id = esp_mqtt_client_subscribe(client, mqttSubTopic, 0);
+            msg_id = esp_mqtt_client_subscribe(client, mqttInTopic, 0);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
             // msg_id = esp_mqtt_client_subscribe(client, "/topic/qos1", 1);
@@ -215,6 +215,17 @@ void mqttConnectionWiFiDisconnected(void){
 
 static void mqttConnectionTask(void *arg){
 
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
+
+	size_t nvsLength;
+
+	char mqttOutTopic[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
+	nvsLength = sizeof(mqttOutTopic);
+	nvs_get_str(nvsHandle, "mqttOutTopic", mqttOutTopic, &nvsLength);
+
+	nvs_close(nvsHandle);
+
 	while (true){
 
 		message_t message;
@@ -234,8 +245,9 @@ static void mqttConnectionTask(void *arg){
 		char mqttTopic[sizeof(message.deviceName) + sizeof(message.sensorName) + 1] = {0};
 		char mqttValue[sizeof(message.stringValue)] = {0};
 
-		strcat(mqttTopic, "beeline/");
-		strcpy(mqttTopic, message.deviceName);
+		strcpy(mqttTopic, mqttOutTopic);
+		strcat(mqttTopic, "/");
+		strcat(mqttTopic, message.deviceName);
 		strcat(mqttTopic, "/");
 		strcat(mqttTopic, message.sensorName);
 
@@ -243,18 +255,22 @@ static void mqttConnectionTask(void *arg){
 
 			case MESSAGE_INT:
 				sprintf(mqttValue, "%d", message.intValue);
+				strcat(mqttTopic, "/int");
 			break;
 
 			case MESSAGE_FLOAT:
 				sprintf(mqttValue, "%.4f", message.floatValue);
+				strcat(mqttTopic, "/float");
 			break;
 
 			case MESSAGE_DOUBLE:
 				sprintf(mqttValue, "%.8f", message.doubleValue);
+				strcat(mqttTopic, "/double");
 			break;
 
 			case MESSAGE_STRING:
 				sprintf(mqttValue, "%s", message.stringValue);
+				strcat(mqttTopic, "/string");
 			break;
 		}
 
@@ -292,21 +308,19 @@ void mqttConnectionResetNVS(void) {
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttHost", "mqtt.server.example.com"));
-	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "mqttPort", 1883));
-	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttUsername", "Username"));
-	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttPassword", "Password"));
-	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "mqttKeepalive", 30));
-	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
-	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttSubTopic", "/beeline#"));
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttOutTopic", "/beeline/in"));
+
+	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, "mqttInTopic", "/beeline/out/#"));
+
 	ESP_ERROR_CHECK(nvs_commit(nvsHandle));
 
 	nvs_close(nvsHandle);

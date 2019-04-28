@@ -31,7 +31,7 @@ static void ssd1306PinsInit() {
 	io_conf.mode = GPIO_MODE_OUTPUT; //set as output mode
 	io_conf.pin_bit_mask = (1ULL << RST_PIN) ;//bit mask of the pins that you want to set,e.g.GPIO18/19
 	io_conf.pull_down_en = 0; //disable pull-down mode
-	io_conf.pull_up_en = 0;//disable pull-up mode
+	io_conf.pull_up_en = 1;//enable pull-up mode
 	gpio_config(&io_conf);//configure GPIO with the given settings
 
 	//This pin is reset signal input. When the pin is pulled LOW, initialization of the chip is

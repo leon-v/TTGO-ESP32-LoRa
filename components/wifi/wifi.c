@@ -162,7 +162,7 @@ void wifiResetNVS(void){
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
 
 	unsigned char idleDisable;
-	ESP_ERROR_CHECK(nvs_get_u8(nvsHandle, "idleDisable", &idleDisable));
+	nvs_get_u8(nvsHandle, "idleDisable", &idleDisable);
 	idleDisable&= ~(0x01 << IDLE_CONFIG_BIT); // Clear bit IDLE_CONFIG_BIT
 	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, "idleDisable", idleDisable));
 
