@@ -8,12 +8,7 @@
 #include "elastic.h"
 #include "display.h"
 
-
-#include "ssd1306.h"
-
 #define TAG "message"
-
-unsigned char disaplyLine = 0;
 
 void messageIn(message_t * messagePointer, const char * from){
 
@@ -45,22 +40,6 @@ void messageIn(message_t * messagePointer, const char * from){
 		messagePointer->valueType,
 		valueString
 	);
-
-	disaplyLine++;
-	if (disaplyLine > 8){
-		disaplyLine = 0;
-	}
-
-	ssd1306Text_t ssd1306Text;
-	ssd1306Text.line = disaplyLine;
-
-	strcpy(ssd1306Text.text, messagePointer->deviceName);
-	strcat(ssd1306Text.text, " / ");
-	strcat(ssd1306Text.text, messagePointer->sensorName);
-	strcat(ssd1306Text.text, " = ");
-	strcat(ssd1306Text.text, valueString);
-
-	ssd1306QueueText(&ssd1306Text);
 
 
 	nvs_handle nvsHandle;

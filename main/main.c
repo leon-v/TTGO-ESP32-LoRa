@@ -32,12 +32,6 @@ void app_main(void) {
 	ssd1306Init();
 
 	esp_err_t espError;
-	ssd1306Text_t disaply;
-	disaply.line = 0;
-
-	strcpy(disaply.text, "Booting...");
-	ssd1306QueueText(&disaply);
-
 
     //Initialize NVS
 	espError = nvs_flash_init();
@@ -92,24 +86,11 @@ void app_main(void) {
 
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    strcpy(disaply.text, "Hold PRG for config mode.");
-    ssd1306QueueText(&disaply);
-    ESP_LOGW(TAG, "%s", disaply.text);
-
-
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-
     int configMode = 0;
 
     configMode = !gpio_get_level(0);
 
     if (configMode){
-
-    	strcpy(disaply.text, "Starting in config mode.");
-
-    	ssd1306QueueText(&disaply);
-
-    	ESP_LOGW(TAG, "%s", disaply.text);
 
     	// Reset all NVS data so we always get known values and don't crash
     	wifiResetNVS();
@@ -119,15 +100,11 @@ void app_main(void) {
     	datTimeResetNVS();
     	radioResetNVS();
     	dieSensorsResetNVS();
+    	displayResetNVS();
 
     	wifiAccessPointInit();
     }
     else{
-
-    	strcpy(disaply.text, "Starting in normal mode.");
-    	ssd1306QueueText(&disaply);
-
-    	ESP_LOGW(TAG, "%s", disaply.text);
     	wifiClientInit();
     }
 
@@ -137,7 +114,7 @@ void app_main(void) {
 	    // automatic light sleep is enabled if tickless idle support is enabled.
 	    esp_pm_config_esp32_t pm_config = {
 	            .max_freq_mhz = CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ,
-	            .min_freq_mhz = 26,
+	            .min_freq_mhz = CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ,
 		#if CONFIG_FREERTOS_USE_TICKLESS_IDLE
 	            .light_sleep_enable = true
 		#endif

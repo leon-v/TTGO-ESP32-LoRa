@@ -30,7 +30,6 @@ void httpServerInit(void);
 esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength);
 
 #define MAX_HTTP_SSI_KEY_LENGTH 32
-#define MAX_HTTP_SSI_VALUE_LENGTH 384
 
 #define HTTP_SERVER_H
 #endif

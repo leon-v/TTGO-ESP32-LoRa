@@ -23,8 +23,15 @@
 #include "menu_html.h"
 #include "style_css.h"
 
-
 #define TAG "http"
+/*
+01234567890123456789
+01234567890123456789
+01234567890123456789
+01234567890123456789
+01234567890123456789
+01234567890123456
+*/
 
 static void httpServerURLDecode(char * input, int length) {
 
@@ -39,7 +46,7 @@ static void httpServerURLDecode(char * input, int length) {
 
 
     	if (input[0] == '+') {
-    		input[0] = ' ';
+    		output[0] = ' ';
     		input+= 1;
     	}
 
@@ -101,8 +108,8 @@ static char * httpServerParseValues(tokens_t * tokens, char * buffer, const char
 			tokens->tokens[index].value = tokens->tokens[index].key + strlen(tokens->tokens[index].key);
 		}
 
-		httpServerURLDecode(tokens->tokens[index].key, MAX_HTTP_SSI_VALUE_LENGTH);
-		httpServerURLDecode(tokens->tokens[index].value, MAX_HTTP_SSI_VALUE_LENGTH);
+		httpServerURLDecode(tokens->tokens[index].key, CONFIG_HTTP_NVS_MAX_STRING_LENGTH);
+		httpServerURLDecode(tokens->tokens[index].value, CONFIG_HTTP_NVS_MAX_STRING_LENGTH);
 	}
 
 	return end;
@@ -203,7 +210,7 @@ static void httpReaplceSSI(char * outBuffer, const char * fileStart, const char 
 
 		file+= sizeof(END_SSI) - 1;
 
-		char replaceSSIValue[MAX_HTTP_SSI_VALUE_LENGTH];
+		char replaceSSIValue[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
 		strcpy(replaceSSIValue, "SSI Value Unhandled");
 
 		for (ssiTagsIndex = 0; ssiTagsIndex < ssiTagsLength; ssiTagsIndex++) {

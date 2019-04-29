@@ -1,13 +1,8 @@
 #ifndef MAIN_SSD1366_H_
 #define MAIN_SSD1366_H_
 
-typedef struct{
-	char text[64];
-	unsigned char line;
-} ssd1306Text_t;
-
 void ssd1306Init(void);
-void ssd1306QueueText(ssd1306Text_t * ssd1306Text);
+void ssd1306SetText(char * text);
 
 // Following definitions are bollowed from
 // http://robotcantalk.blogspot.com/2015/03/interfacing-arduino-with-ssd1306-driven.html

@@ -3,5 +3,6 @@
 
 void displayQueueAdd(message_t * message);
 void displayInit(void);
+void displayResetNVS(void);
 
 #endif

@@ -20,8 +20,6 @@ Source code from https://github.com/yanbe/ssd1306-esp-idf-i2c
 
 #define TAG "SSD1306"
 
-static xQueueHandle ssd1306Queue = NULL;
-
 unsigned char ssd1306Ready = 0;
 
 static void ssd1306PinsInit() {
@@ -249,56 +247,44 @@ static void ssd1306PutCharacter(uint8_t character) {
 	i2c_cmd_link_delete(cmd);
 }
 
-static void ssd1306SetText(ssd1306Text_t * ssd1306Text) {
+void ssd1306SetText(char * text) {
 
 	uint8_t i;
+	uint8_t line = 0;
+	uint8_t newline = 0;
 
 	if (!ssd1306Ready) {
 		return;
 	}
 
-	ssd1306SetTextLine(ssd1306Text->line);
+	ssd1306SetTextLine(line);
 
-	uint8_t text_len = strlen(ssd1306Text->text);
+	uint8_t text_len = strlen(text);
 
 	for (i = 0; i < text_len; i++) {
-		ssd1306PutCharacter( (uint8_t) ssd1306Text->text[i]);
-	}
-}
 
-
-static void ssd1306Task(void *arg) {
-
-	ssd1306Text_t ssd1306Text;
-
-	while (1){
-
-		if (!xQueueReceive(ssd1306Queue, &ssd1306Text, 4000 / portTICK_RATE_MS)){
+		if (text[i] == '\r') {
+			newline = 1;
 			continue;
 		}
 
-		ssd1306SetText(&ssd1306Text);
+		if (text[i] == '\n') {
+			newline = 1;
+			continue;
+		}
 
-		// ESP_LOGI(TAG, "L: %d, T:%s", ssd1306Text.line, ssd1306Text.text);
-	}
+		if (newline){
+			line++;
+			ssd1306SetTextLine(line);
+			newline = 0;
+		}
 
-	vTaskDelete(NULL);
-}
-
-void ssd1306QueueText(ssd1306Text_t * ssd1306Text) {
-
-	if (uxQueueSpacesAvailable(ssd1306Queue)) {
-		xQueueSend(ssd1306Queue, ssd1306Text, 0);
-	}
-	else{
-		ESP_LOGE(TAG, "ssd1306Queue not available to set %s", ssd1306Text->text);
+		ssd1306PutCharacter( (uint8_t) text[i]);
 	}
 }
 
 
 void ssd1306Init(void) {
-
-	ssd1306Queue = xQueueCreate(8, sizeof(ssd1306Text_t));
 
 	ssd1306PinsInit();
 
@@ -311,7 +297,5 @@ void ssd1306Init(void) {
 	ssd1306CLS();
 
 	vTaskDelay(10 / portTICK_PERIOD_MS);
-
-	xTaskCreate(&ssd1306Task, "ssd1306Task", 8192, NULL, 6, NULL);
 
 }

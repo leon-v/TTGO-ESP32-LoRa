@@ -317,8 +317,6 @@ static void radioTask(void * arg){
 			continue;
 		}
 
-		// lora_idle();
-
 		if (message.valueType != MESSAGE_INTERRUPT){
 			radioLoRaSendRadioMessage(&message);
 			continue;

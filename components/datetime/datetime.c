@@ -66,7 +66,7 @@ void dateTimeInit(void){
 
 	datetimeEventGroup = xEventGroupCreate();
 
-	xTaskCreate(&dateTimeTask, "dateTimeTask", 2048, NULL, 13, NULL);
+	xTaskCreate(&dateTimeTask, "dateTimeTask", 4096, NULL, 13, NULL);
 
 }
 void datTimeResetNVS(void){
