@@ -113,10 +113,11 @@ static void disaplyUpdate(void){
 	loadTemplate();
 
 	char * token = strtok(template, "[");
+	char disaply[CONFIG_HTTP_NVS_MAX_STRING_LENGTH] = {0};
 
 	while (token != NULL){
 
-		ssd1306SetText(token);
+		strcat(disaply, token);
 
 		char * device = strtok(NULL, ":]");
 		char * sensor = strtok(NULL, "]");
@@ -130,11 +131,13 @@ static void disaplyUpdate(void){
 
 			char value[32];
 			disaplyGetMessageValue(device, sensor, value);
-			ssd1306SetText(value);
+			strcat(disaply, value);
 		}
 
 		token = strtok(NULL, "[");
 	}
+
+	ssd1306SetText(disaply);
 }
 
 static void updateVariable(message_t * message){
