@@ -84,13 +84,13 @@ void app_main(void) {
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
 
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
 
-    int configMode = 0;
-
-    configMode = !gpio_get_level(0);
+    int configMode = !gpio_get_level(0);
 
     if (configMode){
+
+    	ESP_LOGW(TAG, "Booting in config mode");
 
     	// Reset all NVS data so we always get known values and don't crash
     	wifiResetNVS();
@@ -105,6 +105,9 @@ void app_main(void) {
     	wifiAccessPointInit();
     }
     else{
+
+    	ESP_LOGW(TAG, "Booting...");
+
     	wifiClientInit();
     }
 

@@ -22,6 +22,8 @@ Source code from https://github.com/yanbe/ssd1306-esp-idf-i2c
 
 unsigned char ssd1306Ready = 0;
 
+#define I2C_TIMER 1
+
 static void ssd1306PinsInit() {
 
 	gpio_config_t io_conf;
@@ -69,7 +71,7 @@ static void ssd1306ModuleInit() {
 	i2c_master_write_byte(cmd, OLED_CMD_DISPLAY_ON, true);
 	i2c_master_stop(cmd);
 
-	espRc = i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
+	espRc = i2c_master_cmd_begin(I2C_NUM_0, cmd, I2C_TIMER);
 	if (espRc == ESP_OK) {
 		ESP_LOGI(TAG, "OLED configured successfully");
 		ssd1306Ready = 1;
@@ -99,7 +101,7 @@ static void ssd1306ModuleInit() {
 // 			i2c_master_write_byte(cmd, 0xFF >> (j % 8), true);
 // 		}
 // 		i2c_master_stop(cmd);
-// 		i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
+// 		i2c_master_cmd_begin(I2C_NUM_0, cmd, I2C_TIMER);
 // 		i2c_cmd_link_delete(cmd);
 // 	}
 
@@ -125,7 +127,7 @@ static void ssd1306CLS(void) {
 		i2c_master_write_byte(cmd, OLED_CONTROL_BYTE_DATA_STREAM, true);
 		i2c_master_write(cmd, zero, 128, true);
 		i2c_master_stop(cmd);
-		i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
+		i2c_master_cmd_begin(I2C_NUM_0, cmd, I2C_TIMER);
 		i2c_cmd_link_delete(cmd);
 	}
 }
@@ -150,7 +152,7 @@ static void ssd1306CLS(void) {
 // 		i2c_master_write_byte(cmd, OLED_CMD_SET_CONTRAST, true);
 // 		i2c_master_write_byte(cmd, contrast, true);
 // 		i2c_master_stop(cmd);
-// 		i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
+// 		i2c_master_cmd_begin(I2C_NUM_0, cmd, I2C_TIMER);
 // 		i2c_cmd_link_delete(cmd);
 // 		vTaskDelay(1/portTICK_PERIOD_MS);
 
@@ -191,7 +193,7 @@ static void ssd1306CLS(void) {
 // 	i2c_master_write_byte(cmd, 0x2F, true); // activate scroll (p29)
 
 // 	i2c_master_stop(cmd);
-// 	espRc = i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
+// 	espRc = i2c_master_cmd_begin(I2C_NUM_0, cmd, I2C_TIMER);
 // 	if (espRc == ESP_OK) {
 // 		ESP_LOGI(tag, "Scroll command succeeded");
 // 	} else {
@@ -222,7 +224,7 @@ static void ssd1306SetTextLine(uint8_t cur_page) {
 	i2c_master_write_byte(cmd, 0xB0 | cur_page, true); // reset page
 
 	i2c_master_stop(cmd);
-	i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
+	i2c_master_cmd_begin(I2C_NUM_0, cmd, I2C_TIMER);
 	i2c_cmd_link_delete(cmd);
 }
 
@@ -243,7 +245,7 @@ static void ssd1306PutCharacter(uint8_t character) {
 	i2c_master_write(cmd, font[character], FONT_WIDTH, true);
 
 	i2c_master_stop(cmd);
-	i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
+	i2c_master_cmd_begin(I2C_NUM_0, cmd, I2C_TIMER);
 	i2c_cmd_link_delete(cmd);
 }
 
@@ -288,14 +290,14 @@ void ssd1306Init(void) {
 
 	ssd1306PinsInit();
 
-	vTaskDelay(10 / portTICK_PERIOD_MS);
+	vTaskDelay(I2C_TIMER);
 
 	ssd1306ModuleInit();
 
-	vTaskDelay(10 / portTICK_PERIOD_MS);
+	vTaskDelay(I2C_TIMER);
 
 	ssd1306CLS();
 
-	vTaskDelay(10 / portTICK_PERIOD_MS);
+	vTaskDelay(I2C_TIMER);
 
 }
