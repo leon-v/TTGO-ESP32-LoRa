@@ -24,14 +24,9 @@
 #include "style_css.h"
 
 #define TAG "http"
-/*
-01234567890123456789
-01234567890123456789
-01234567890123456789
-01234567890123456789
-01234567890123456789
-01234567890123456
-*/
+
+#define HTTP_STACK_SIZE 8192
+#define HTTP_BUFFER_SIZE HTTP_STACK_SIZE / 2
 
 static void httpServerURLDecode(char * input, int length) {
 
@@ -150,6 +145,8 @@ static int httpGetBoolTagRotate(const char * ssiTagKey){
 
 	return rotateString ? atoi(rotateString + 2) : 0;
 }
+
+
 
 static void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength) {
 
@@ -384,7 +381,7 @@ esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fil
 
 	wifiUsed();
 
-	char outBuffer[4096];
+	char outBuffer[HTTP_BUFFER_SIZE];
 
 	if (req->method == HTTP_POST){
 		httpServerSavePost(req, outBuffer, sizeof(outBuffer), ssiTags, ssiTagsLength);
@@ -408,13 +405,156 @@ void stop_webserver(httpd_handle_t server) {
     httpd_stop(server);
 }
 
+void httpPageReplaceTag(char * tag){
 
+	char * module = strtok(tag, ":");
+
+	if (!module){
+		strcpy(tag, "Failed to get module from tag");
+	}
+
+	if (strcmp(tag, "nvs") == 0){
+
+		char * nvsName = strtok(NULL, ":");
+
+		if (!nvsName){
+			strcpy(tag, "Missing NVS name");
+			return;
+		}
+
+		char * nvsType = strtok(NULL, ":");
+
+		if (!nvsType){
+			strcpy(tag, "Missing NVS type");
+			return;
+		}
+
+		char * nvsKey = strtok(NULL, ":");
+
+		if (!nvsKey){
+			strcpy(tag, "Missing NVS key");
+			return;
+		}
+
+		size_t nvsLength = CONFIG_HTTP_NVS_MAX_STRING_LENGTH;
+		nvs_handle nvsHandle;
+		ESP_ERROR_CHECK(nvs_open(nvsName, NVS_READWRITE, &nvsHandle));
+
+		if (strcmp(nvsType, "string") == 0){
+			nvs_get_str(nvsHandle, nvsKey, tag, &nvsLength);
+		}
+
+		nvs_close(nvsHandle);
+
+	}
+
+	//tag 21 nvs:device:uniqueName??
+	// strcpy(tag, "!Replaced value!");
+}
+static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
+
+	httpPage_t * httpPage = (httpPage_t *) req->user_ctx;
+
+	char tag[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
+
+	char * end = httpPage->page;
+	char * start = strstr(end, START_SSI);
+
+	int length;
+
+	if (!start){
+		strcpy(outBuffer, end);
+		return;
+	}
+
+	strcpy(outBuffer, "");
+
+
+	while (start != NULL) {
+
+		length = start - end;
+		strncat(outBuffer, end, length);
+
+		start+= strlen(START_SSI);
+
+		end = strstr(end, END_SSI);
+
+		if (!end){
+			start = strstr(start, START_SSI);
+			continue;
+		}
+
+		int length = end - start;
+
+		memcpy(tag, start, length);
+		tag[length] = '\0';
+
+		printf("tag %d %s\n", length, tag);
+
+		httpPageReplaceTag(tag);
+
+		strcat(outBuffer, tag);
+
+		end+= strlen(END_SSI);
+		start = strstr(end, START_SSI);
+	}
+
+	strcat(outBuffer, end);
+}
+
+static esp_err_t httpPageHandler(httpd_req_t *req){
+
+	// httpPage_t * httpPage = (httpPage_t *) req->user_ctx;
+
+	wifiUsed();
+
+	char outBuffer[HTTP_BUFFER_SIZE];
+
+	httpPageGetContent(outBuffer, req);
+
+	// if (req->method == HTTP_POST){
+	// 	httpServerSavePost(req, outBuffer, sizeof(outBuffer), ssiTags, ssiTagsLength);
+	// }
+
+
+	// if (ssiTags) {
+	// 	httpReaplceSSI(outBuffer, fileStart, fileEnd, ssiTags, ssiTagsLength);
+	// }
+
+	// else{
+		// strncpy(outBuffer, fileStart, fileEnd - fileStart);
+	// }
+
+
+	return httpd_resp_send(req, outBuffer, strlen(outBuffer));
+}
+
+void httpPageRegister(httpd_handle_t server, const httpPage_t * httpPage){
+
+	httpd_uri_t getURI = {
+	    .uri      	= httpPage->uri,
+	    .method   	= HTTP_GET,
+	    .handler  	= httpPageHandler,
+	    .user_ctx	= httpPage,
+	};
+
+	httpd_register_uri_handler(server, &getURI);
+
+	httpd_uri_t postURI = {
+	    .uri      = httpPage->uri,
+	    .method   = HTTP_POST,
+	    .handler  = httpPageHandler,
+	    .user_ctx	= httpPage,
+	};
+
+	httpd_register_uri_handler(server, &postURI);
+}
 static httpd_handle_t start_webserver(void) {
 
 	wifiUsed();
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.stack_size = 8192;
+    config.stack_size = HTTP_STACK_SIZE;
 
     config.max_uri_handlers = 32;
 
@@ -480,5 +620,5 @@ static void httpServerTask(void *arg){
 }
 
 void httpServerInit(){
-	xTaskCreate(&httpServerTask, "http", 8192, NULL, 12, NULL);
+	xTaskCreate(&httpServerTask, "http", HTTP_STACK_SIZE, NULL, 12, NULL);
 }

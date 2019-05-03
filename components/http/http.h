@@ -2,6 +2,12 @@
 
 #include <esp_http_server.h>
 
+typedef struct {
+	const char * uri;
+	const char * page;
+	const char * type;
+} httpPage_t;
+
 typedef enum {
 	SSI_TYPE_TEXT = 0,
 	SSI_TYPE_DISAPLY_TEXT,
@@ -28,6 +34,7 @@ typedef struct{
 
 void httpServerInit(void);
 esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength);
+void httpPageRegister(httpd_handle_t server, const httpPage_t * httpPage);
 
 #define MAX_HTTP_SSI_KEY_LENGTH 32
 
