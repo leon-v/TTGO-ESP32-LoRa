@@ -14,8 +14,9 @@
 			<form action="" method="post">
 				<h3>Temperature Sensor</h3>
 				<div class="inputBlock">
-					<!--#dieSensEn>>0-->
-					<label for="dieSensEn>>0">Enable</label><br>
+					<input name="nvs:BeelineNVS:bit:dieSensEn:0" type="hidden" id="_dieSensEn0" value="<!--#nvs:BeelineNVS:bit:dieSensEn:0-->">
+					<input type="checkbox" id="dieSensEn0" for="_dieSensEn0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensEn:0--> >
+					<label for="dieSensEn0">Enable</label><br>
 					Delay: <!--#delayTemp-->ms
 				</div>
 

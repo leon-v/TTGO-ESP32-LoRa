@@ -28,6 +28,9 @@
 #define HTTP_STACK_SIZE 8192
 #define HTTP_BUFFER_SIZE HTTP_STACK_SIZE / 2
 
+#define START_SSI "<!--#"
+#define END_SSI "-->"
+
 static void httpServerURLDecode(char * input, int length) {
 
     char * output = input;
@@ -122,9 +125,6 @@ static char * httpServerGetTokenValue(tokens_t * tokens, const char * key){
 
 	return NULL;
 }
-
-#define START_SSI "<!--#"
-#define END_SSI "-->"
 
 static void httpGetBoolTagKey(char * ssiTagKeyTrimed, const char * ssiTagKey){
 
@@ -416,39 +416,77 @@ void httpPageReplaceTag(char * tag){
 	if (strcmp(tag, "nvs") == 0){
 
 		char * nvsName = strtok(NULL, ":");
-
-		if (!nvsName){
+		if (!nvsName) {
 			strcpy(tag, "Missing NVS name");
 			return;
 		}
 
 		char * nvsType = strtok(NULL, ":");
-
-		if (!nvsType){
+		if (!nvsType) {
 			strcpy(tag, "Missing NVS type");
 			return;
 		}
 
 		char * nvsKey = strtok(NULL, ":");
-
-		if (!nvsKey){
+		if (!nvsKey) {
 			strcpy(tag, "Missing NVS key");
 			return;
 		}
 
+
 		size_t nvsLength = CONFIG_HTTP_NVS_MAX_STRING_LENGTH;
 		nvs_handle nvsHandle;
-		ESP_ERROR_CHECK(nvs_open(nvsName, NVS_READWRITE, &nvsHandle));
+		ESP_ERROR_CHECK(nvs_open(nvsName, NVS_READONLY, &nvsHandle));
 
+
+		uint32_t nvsIntValue;
+		uint8_t nvsCharValue;
+
+		// Return string value
 		if (strcmp(nvsType, "string") == 0){
 			nvs_get_str(nvsHandle, nvsKey, tag, &nvsLength);
+		}
+
+		// Return integer
+		else if (strcmp(nvsType, "int") == 0){
+			nvs_get_u32(nvsHandle, nvsKey, &nvsIntValue);
+
+			itoa(nvsIntValue, tag, 10);
+		}
+
+		// Return bit value
+		else if ( (strcmp(nvsType, "bit") == 0) || (strcmp(nvsType, "checked") == 0) ) {
+
+			nvs_get_u8(nvsHandle, nvsKey, &nvsCharValue);
+
+			char * bitStr = strtok(NULL, ":");
+
+			if (!bitStr) {
+				strcpy(tag, "Missing bit position");
+				nvs_close(nvsHandle);
+				return;
+			}
+
+			int value = (nvsCharValue >> atoi(bitStr)) & 0x01;
+
+			if (strcmp(nvsType, "bit")) {
+				itoa(nvsIntValue, tag, 10);
+			}
+
+			else if (strcmp(nvsType, "checked")) {
+				if (value){
+					strcpy(tag, "checked");
+				}
+				else{
+					strcpy(tag, "");
+				}
+			}
 		}
 
 		nvs_close(nvsHandle);
 
 	}
 
-	//tag 21 nvs:device:uniqueName??
 	// strcpy(tag, "!Replaced value!");
 }
 static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
@@ -489,9 +527,11 @@ static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
 		memcpy(tag, start, length);
 		tag[length] = '\0';
 
-		printf("tag %d %s\n", length, tag);
+		printf("tag in %d %s\n", length, tag);
 
 		httpPageReplaceTag(tag);
+
+		printf("tag out %d %s\n", length, tag);
 
 		strcat(outBuffer, tag);
 
