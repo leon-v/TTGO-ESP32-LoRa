@@ -6,6 +6,7 @@
 #include <esp_log.h>
 
 #include "http.h"
+#include "http_ssi_nvs.h"
 
 #include "wifi.h"
 
@@ -405,7 +406,7 @@ void stop_webserver(httpd_handle_t server) {
     httpd_stop(server);
 }
 
-void httpPageReplaceTag(char * tag){
+void httpPageReplaceTag(char * tag) {
 
 	char * module = strtok(tag, ":");
 
@@ -413,81 +414,15 @@ void httpPageReplaceTag(char * tag){
 		strcpy(tag, "Failed to get module from tag");
 	}
 
-	if (strcmp(tag, "nvs") == 0){
+	if (strcmp(module, "nvs") == 0){
 
-		char * nvsName = strtok(NULL, ":");
-		if (!nvsName) {
-			strcpy(tag, "Missing NVS name");
-			return;
-		}
-
-		char * nvsType = strtok(NULL, ":");
-		if (!nvsType) {
-			strcpy(tag, "Missing NVS type");
-			return;
-		}
-
-		char * nvsKey = strtok(NULL, ":");
-		if (!nvsKey) {
-			strcpy(tag, "Missing NVS key");
-			return;
-		}
-
-
-		size_t nvsLength = CONFIG_HTTP_NVS_MAX_STRING_LENGTH;
-		nvs_handle nvsHandle;
-		ESP_ERROR_CHECK(nvs_open(nvsName, NVS_READONLY, &nvsHandle));
-
-
-		uint32_t nvsIntValue;
-		uint8_t nvsCharValue;
-
-		// Return string value
-		if (strcmp(nvsType, "string") == 0){
-			nvs_get_str(nvsHandle, nvsKey, tag, &nvsLength);
-		}
-
-		// Return integer
-		else if (strcmp(nvsType, "int") == 0){
-			nvs_get_u32(nvsHandle, nvsKey, &nvsIntValue);
-
-			itoa(nvsIntValue, tag, 10);
-		}
-
-		// Return bit value
-		else if ( (strcmp(nvsType, "bit") == 0) || (strcmp(nvsType, "checked") == 0) ) {
-
-			nvs_get_u8(nvsHandle, nvsKey, &nvsCharValue);
-
-			char * bitStr = strtok(NULL, ":");
-
-			if (!bitStr) {
-				strcpy(tag, "Missing bit position");
-				nvs_close(nvsHandle);
-				return;
-			}
-
-			int value = (nvsCharValue >> atoi(bitStr)) & 0x01;
-
-			if (strcmp(nvsType, "bit")) {
-				itoa(nvsIntValue, tag, 10);
-			}
-
-			else if (strcmp(nvsType, "checked")) {
-				if (value){
-					strcpy(tag, "checked");
-				}
-				else{
-					strcpy(tag, "");
-				}
-			}
-		}
-
-		nvs_close(nvsHandle);
+		char * ssiTag = strtok(NULL, "");
+		httpSSINVSGet(tag, ssiTag);
 
 	}
-
-	// strcpy(tag, "!Replaced value!");
+	else{
+		strcpy(tag, "Failed to parse module for tag");
+	}
 }
 static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
 
@@ -527,11 +462,7 @@ static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
 		memcpy(tag, start, length);
 		tag[length] = '\0';
 
-		printf("tag in %d %s\n", length, tag);
-
 		httpPageReplaceTag(tag);
-
-		printf("tag out %d %s\n", length, tag);
 
 		strcat(outBuffer, tag);
 
@@ -542,6 +473,36 @@ static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
 	strcat(outBuffer, end);
 }
 
+void httpPagePost(httpd_req_t *req, char * buffer, size_t bufferLength){
+
+	ESP_ERROR_CHECK(httpGetPost(req, buffer, bufferLength));
+
+	tokens_t post;
+	httpServerParseValues(&post, buffer, "&", "=", "\0");
+
+	for (int tokenIndex = 0; tokenIndex < post.length; tokenIndex++){
+
+		token_t * token = &post.tokens[tokenIndex];
+
+		char * module = strtok(token->key, ":");
+
+		if (!module){
+			ESP_LOGE(TAG, "Failed to get module from tag");
+			continue;
+		}
+
+		if (strcmp(module, "nvs") == 0){
+
+			char * ssiTag = strtok(NULL, "");
+			httpSSINVSSet(ssiTag, token->value);
+
+		}
+		else{
+			ESP_LOGE(TAG, "Failed to parse module for tag");
+		}
+	}
+}
+
 static esp_err_t httpPageHandler(httpd_req_t *req){
 
 	// httpPage_t * httpPage = (httpPage_t *) req->user_ctx;
@@ -549,6 +510,10 @@ static esp_err_t httpPageHandler(httpd_req_t *req){
 	wifiUsed();
 
 	char outBuffer[HTTP_BUFFER_SIZE];
+
+	if (req->method == HTTP_POST){
+		httpPagePost(req, outBuffer, sizeof(outBuffer));
+	}
 
 	httpPageGetContent(outBuffer, req);
 
