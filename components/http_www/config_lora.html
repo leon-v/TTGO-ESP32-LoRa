@@ -15,35 +15,50 @@
 
 				<h3>Frequency</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#loraFrequency--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:int:loraFrequency" value="<!--#nvs:BeelineNVS:int:loraFrequency-->" >
+					</div>
 				</div>
 
 				<h3>TX Sync Word</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#loraTXSyncWord--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:string:loraTXSyncWord" value="<!--#nvs:BeelineNVS:string:loraTXSyncWord-->" >
+					</div>
 				</div>
 
 				<h3>RX Sync Word</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#loraRXSyncWord--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:string:loraRXSyncWord" value="<!--#nvs:BeelineNVS:string:loraRXSyncWord-->" >
+					</div>
 				</div>
 
 				<h3>Encryption Key</h3>
 				<div class="inputBlock">
-					<div class="input" maxlength="16"><!--#loraKey--></div>
+					<div class="input" maxlength="16">
+						<input type="text" name="nvs:BeelineNVS:string:loraKey" value="<!--#nvs:BeelineNVS:string:loraKey-->" >
+					</div>
 		    		<p class="info">Must be 16 characters or less.</p>
 				</div>
 
 				<h3>Incoming Message Routing</h3>
 				<div class="inputBlock">
-					<!--#loraInRt>>0-->
-    				<label for="loraInRt>>0">Forward to LoRa</label><br>
-    				<!--#loraInRt>>1-->
-    				<label for="loraInRt>>1">Forward to MQTT</label><br>
-    				<!--#loraInRt>>2-->
-    				<label for="loraInRt>>2">Forward to Elasticsearch</label><br>
-    				<!--#loraInRt>>3-->
-    				<label for="loraInRt>>3">Forward to Display</label><br>
+					<input name="nvs:BeelineNVS:bit:loraInRt:0" type="hidden" id="_loraInRt0" value="<!--#nvs:BeelineNVS:bit:loraInRt:0-->">
+					<input type="checkbox" id="loraInRt0" for="_loraInRt0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:0--> >
+					<label for="_loraInRt0">Forward to LoRa</label><br>
+
+					<input name="nvs:BeelineNVS:bit:loraInRt:1" type="hidden" id="_loraInRt1" value="<!--#nvs:BeelineNVS:bit:loraInRt:1-->">
+					<input type="checkbox" id="loraInRt1" for="_loraInRt1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:1--> >
+					<label for="_loraInRt1">Forward to MQTT</label><br>
+
+					<input name="nvs:BeelineNVS:bit:loraInRt:2" type="hidden" id="_loraInRt2" value="<!--#nvs:BeelineNVS:bit:loraInRt:2-->">
+					<input type="checkbox" id="loraInRt2" for="_loraInRt2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:2--> >
+					<label for="_loraInRt2">Forward to Elasticsearch</label><br>
+
+					<input name="nvs:BeelineNVS:bit:loraInRt:3" type="hidden" id="_loraInRt3" value="<!--#nvs:BeelineNVS:bit:loraInRt:3-->">
+					<input type="checkbox" id="loraInRt3" for="_loraInRt3" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:3--> >
+					<label for="_loraInRt3">Forward to Display</label><br>
 				</div>
 
 				<h3>Idle</h3>

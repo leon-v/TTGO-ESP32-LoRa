@@ -505,7 +505,7 @@ void httpPagePost(httpd_req_t *req, char * buffer, size_t bufferLength){
 
 static esp_err_t httpPageHandler(httpd_req_t *req){
 
-	// httpPage_t * httpPage = (httpPage_t *) req->user_ctx;
+	httpPage_t * httpPage = (httpPage_t *) req->user_ctx;
 
 	wifiUsed();
 
@@ -515,6 +515,7 @@ static esp_err_t httpPageHandler(httpd_req_t *req){
 		httpPagePost(req, outBuffer, sizeof(outBuffer));
 	}
 
+	httpd_resp_set_type(req, httpPage->type);
 	httpPageGetContent(outBuffer, req);
 
 	// if (req->method == HTTP_POST){

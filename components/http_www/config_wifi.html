@@ -15,31 +15,44 @@
 
 				<h3>SSID</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#wifiSSID--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:string:wifiSSID" value="<!--#nvs:BeelineNVS:string:wifiSSID-->" >
+					</div>
 				</div>
 
 
 				<h3>Key / Password</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#wifiPassword--></div>
+					<div class="input">
+						<input type="password" name="nvs:BeelineNVS:string:wifiPassword" value="<!--#nvs:BeelineNVS:string:wifiPassword-->" >
+					</div>
 				</div>
 
 				<h3>Idle</h3>
 				<div class="inputBlock">
-					<!--#idleDisable>>0-->
-    				<label for="idleDisable>>0">Disable when not used</label><br>
+
+					<input name="nvs:BeelineNVS:bit:idleDisable:0" type="hidden" id="_idleDisable0" value="<!--#nvs:BeelineNVS:bit:idleDisable:0-->">
+					<input type="checkbox" id="idleDisable0" for="_idleDisable0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:idleDisable:0--> >
+					<label for="_idleDisable0">Disable when not used</label><br>
 				</div>
 
 				<h3>Message Routing</h3>
 				<div class="inputBlock">
-					<!--#wifiInRt>>0-->
-    				<label for="dieSensInRt>>0">Forward to LoRa</label><br>
-    				<!--#wifiInRt>>1-->
-    				<label for="dieSensInRt>>1">Forward to MQTT</label><br>
-    				<!--#wifiInRt>>2-->
-    				<label for="dieSensInRt>>2">Forward to Elasticsearch</label><br>
-    				<!--#wifiInRt>>3-->
-    				<label for="dieSensInRt>>3">Forward to Display</label><br>
+					<input name="nvs:BeelineNVS:bit:dieSensInRt:0" type="hidden" id="_dieSensInRt0" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:0-->">
+					<input type="checkbox" id="dieSensInRt0" for="_dieSensInRt0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:0--> >
+					<label for="_dieSensInRt0">Forward to LoRa</label><br>
+
+					<input name="nvs:BeelineNVS:bit:dieSensInRt:1" type="hidden" id="_dieSensInRt1" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:1-->">
+					<input type="checkbox" id="dieSensInRt1" for="_dieSensInRt1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:1--> >
+					<label for="_dieSensInRt1">Forward to MQTT</label><br>
+
+					<input name="nvs:BeelineNVS:bit:dieSensInRt:2" type="hidden" id="_dieSensInRt2" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:2-->">
+					<input type="checkbox" id="dieSensInRt2" for="_dieSensInRt2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:2--> >
+					<label for="_dieSensInRt2">Forward to Elasticsearch</label><br>
+
+					<input name="nvs:BeelineNVS:bit:dieSensInRt:3" type="hidden" id="_dieSensInRt3" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:3-->">
+					<input type="checkbox" id="dieSensInRt3" for="_dieSensInRt3" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:3--> >
+					<label for="_dieSensInRt3">Forward to Display</label><br>
 				</div>
 
 				<button>Save Settings</button>

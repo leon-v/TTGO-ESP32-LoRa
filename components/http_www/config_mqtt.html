@@ -15,53 +15,74 @@
 
 				<h3>Host Name</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#mqttHost--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:string:mqttHost" value="<!--#nvs:BeelineNVS:string:mqttHost-->" >
+					</div>
 				</div>
 
 
 				<h3>Port</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#mqttPort--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:int:mqttPort" value="<!--#nvs:BeelineNVS:int:mqttPort-->" >
+					</div>
 				</div>
 
 
 				<h3>Keepalive (sec)</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#mqttKeepalive--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:int:mqttKeepalive" value="<!--#nvs:BeelineNVS:int:mqttKeepalive-->" >
+					</div>
 				</div>
 
 
 				<h3>User Name</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#mqttUsername--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:string:mqttUsername" value="<!--#nvs:BeelineNVS:string:mqttUsername-->" >
+					</div>
 				</div>
 
 
 				<h3>Password</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#mqttPassword--></div>
+					<div class="input">
+						<input type="password" name="nvs:BeelineNVS:string:mqttPassword" value="<!--#nvs:BeelineNVS:string:mqttPassword-->" >
+					</div>
 				</div>
 
-				<h3>Incoming Message Routing</h3>
+				<h3>Message Routing</h3>
 				<div class="inputBlock">
-					<!--#mqttInRt>>0-->
-					<label for="mqttInRt>>0">Forward to LoRa</label><br>
-					<!--#mqttInRt>>1-->
-					<label for="mqttInRt>>1">Forward to MQTT</label><br>
-					<!--#mqttInRt>>2-->
-					<label for="mqttInRt>>2">Forward to Elasticsearch</label><br>
-					<!--#mqttInRt>>3-->
-    				<label for="mqttInRt>>3">Forward to Display</label><br>
+					<input name="nvs:BeelineNVS:bit:mqttInRt:0" type="hidden" id="_mqttInRt0" value="<!--#nvs:BeelineNVS:bit:mqttInRt:0-->">
+					<input type="checkbox" id="mqttInRt0" for="_mqttInRt0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:mqttInRt:0--> >
+					<label for="_mqttInRt0">Forward to LoRa</label><br>
+
+					<input name="nvs:BeelineNVS:bit:mqttInRt:1" type="hidden" id="_mqttInRt1" value="<!--#nvs:BeelineNVS:bit:mqttInRt:1-->">
+					<input type="checkbox" id="mqttInRt1" for="_mqttInRt1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:mqttInRt:1--> >
+					<label for="_mqttInRt1">Forward to MQTT</label><br>
+
+					<input name="nvs:BeelineNVS:bit:mqttInRt:2" type="hidden" id="_mqttInRt2" value="<!--#nvs:BeelineNVS:bit:mqttInRt:2-->">
+					<input type="checkbox" id="mqttInRt2" for="_mqttInRt2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:mqttInRt:2--> >
+					<label for="_mqttInRt2">Forward to Elasticsearch</label><br>
+
+					<input name="nvs:BeelineNVS:bit:mqttInRt:3" type="hidden" id="_mqttInRt3" value="<!--#nvs:BeelineNVS:bit:mqttInRt:3-->">
+					<input type="checkbox" id="mqttInRt3" for="_mqttInRt3" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:mqttInRt:3--> >
+					<label for="_mqttInRt3">Forward to Display</label><br>
 				</div>
 
 				<h3>Incoming Message Topic</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#mqttInTopic--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:string:mqttInTopic" value="<!--#nvs:BeelineNVS:string:mqttInTopic-->" >
+					</div>
 				</div>
 
 				<h3>Outgoing Message Topic</h3>
 				<div class="inputBlock">
-					<div class="input"><!--#mqttOutTopic--></div>
+					<div class="input">
+						<input type="text" name="nvs:BeelineNVS:string:mqttOutTopic" value="<!--#nvs:BeelineNVS:string:mqttOutTopic-->" >
+					</div>
 				</div>
 
 				<button>Save Settings</button>
