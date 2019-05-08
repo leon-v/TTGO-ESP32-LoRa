@@ -33,19 +33,12 @@ void messageIn(message_t * messagePointer, const char * from){
 		break;
 	}
 
-	ESP_LOGI(TAG, "Message From %s: deviceName=%s, sensorName=%s, valueType=%d, value=%s",
-		from,
-		messagePointer->deviceName,
-		messagePointer->sensorName,
-		messagePointer->valueType,
-		valueString
-	);
-
 
 	nvs_handle nvsHandle;
 	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
 	char handle[32];
+	char log[64] = "\0";
 	strcpy(handle, from);
 	strcat(handle, "InRt");
 
@@ -55,25 +48,33 @@ void messageIn(message_t * messagePointer, const char * from){
 	nvs_close(nvsHandle);
 
 	if ((routing >> LORA) & 0x01){
-		ESP_LOGI(TAG, "Forwarding to LoRa");
+		strcat(log, " lora");
 		radioLoRaQueueAdd(messagePointer);
 	}
 
 	if ((routing >> MQTT) & 0x01){
-		ESP_LOGI(TAG, "Forwarding to MQTT");
+		strcat(log, " mqtt");
 		mqttConnectionQueueAdd(messagePointer);
 	}
 
 	if ((routing >> ELASTICSEARCH) & 0x01){
-		ESP_LOGI(TAG, "Forwarding to Elasticsearch");
+		strcat(log, " elastic");
 		elasticQueueAdd(messagePointer);
 	}
 
 	if ((routing >> DISPLAY) & 0x01){
-		ESP_LOGI(TAG, "Forwarding to Display");
+		strcat(log, " display");
 		displayQueueAdd(messagePointer);
 	}
 
+	ESP_LOGI(TAG, "%s: %s/%s/%d = %s --> %s",
+		from,
+		messagePointer->deviceName,
+		messagePointer->sensorName,
+		messagePointer->valueType,
+		valueString,
+		log
+	);
 }
 
 void messageNVSReset(char * from, unsigned char defaults){

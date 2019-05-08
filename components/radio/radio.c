@@ -31,6 +31,8 @@ static unsigned int loraRXSyncWord;
 static char radioLoRaRXEnabled = 1;
 static TimerHandle_t idleTimer;
 
+int count = 0;
+
 int radioLoRaRxIdleDisableEnabled(void){
 
 	nvs_handle nvsHandle;
@@ -275,28 +277,11 @@ static void radioLoraRx(void) {
 			continue;
 		}
 
-		radioLoRaRXUsed();
-
 		radioCreateMessage(&message, buffer, length);
 
-		ESP_LOGI(TAG, "LoRa heard |%s|%s|%d|%d", message.deviceName, message.sensorName, message.valueType, length);
-
-		switch(message.valueType){
-			case MESSAGE_INT:
-				ESP_LOGI(TAG, "Value: %d", message.intValue);
-			break;
-			case MESSAGE_FLOAT:
-				ESP_LOGI(TAG, "Value: %f", message.floatValue);
-			break;
-			case MESSAGE_DOUBLE:
-				ESP_LOGI(TAG, "Value: %f", message.doubleValue);
-			break;
-			case MESSAGE_STRING:
-				ESP_LOGI(TAG, "Value: %s", message.stringValue);
-			break;
-		}
-
 		messageIn(&message, "lora");
+
+		radioLoRaRXUsed();
 	}
 }
 
@@ -313,7 +298,7 @@ static void radioTask(void * arg){
 			lora_sleep();
 		}
 
-		if (!xQueueReceive(radioQueue, &message, 4000 / portTICK_RATE_MS)) {
+		if (!xQueueReceive(radioQueue, &message, 500 / portTICK_RATE_MS)) {
 			continue;
 		}
 
@@ -344,9 +329,7 @@ static void radioLoraISR(void * arg){
 	message.valueType = MESSAGE_INTERRUPT;
 	message.intValue = (uint32_t) arg;
 
-	// if (uxQueueSpacesAvailable(radioQueue)) {
-		xQueueSendFromISR(radioQueue, &message, 0);
-	// }
+	xQueueSendFromISR(radioQueue, &message, 0);
 }
 
 void radioInit(void){
@@ -406,7 +389,7 @@ void radioInit(void){
 	lora_set_frequency(loraFrequency);
 	lora_enable_crc();
 
-	xTaskCreate(&radioTask, "radioTask", 4096, NULL, 10, NULL);
+	xTaskCreate(&radioTask, "radioTask", 4096, NULL, 13, NULL);
 
 
 	int timerId = 1;

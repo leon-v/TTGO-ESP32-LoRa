@@ -1,61 +1,86 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Beeline - Die Sensors Configuration</title>
-		<link href="./style.css" rel="stylesheet" type="text/css">
-		<script type="text/javascript" src="/javascript.js"></script>
-	</head>
-	<body >
-		<div class="left">
-			<iframe src="./menu.html"></iframe>
+<!--#page:template_top_html-->
+<h2>Die Sensors Configuration</h2>
+<form action="" method="post">
+	<h3>Temperature Sensor</h3>
+	<div class="inputBlock">
+
+		<input name="nvs:BeelineNVS:bit:dieSensEn:0" type="hidden" id="_dieSensEn0" value="<!--#nvs:BeelineNVS:bit:dieSensEn:0-->">
+		<input type="checkbox" id="dieSensEn0" for="_dieSensEn0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensEn:0--> >
+		<label for="dieSensEn0">Enable</label><br>
+		<div class="input">
+			<div class="l">Delay:</div>
+			<div class="middle">
+				<input type="text" name="nvs:BeelineNVS:int:delayTemp" value="<!--#nvs:BeelineNVS:int:delayTemp-->" >
+			</div>
+			<div class="right">ms</div>
 		</div>
-		<div class="right">
-			<h2>Die Sensors Configuration</h2>
-			<form action="" method="post">
-				<h3>Temperature Sensor</h3>
-				<div class="inputBlock">
-					<input name="nvs:BeelineNVS:bit:dieSensEn:0" type="hidden" id="_dieSensEn0" value="<!--#nvs:BeelineNVS:bit:dieSensEn:0-->">
-					<input type="checkbox" id="dieSensEn0" for="_dieSensEn0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensEn:0--> >
-					<label for="dieSensEn0">Enable</label><br>
-					Delay: <input type="text" name="nvs:BeelineNVS:int:delayTemp" value="<!--#nvs:BeelineNVS:int:delayTemp-->" >ms
-				</div>
+		<p class="info">
+			Message Format:<br>
+			&nbsp;&nbsp;Name: DieTemp<br>
+			&nbsp;&nbsp;Type: Float<br>
+		</p>
+	</div>
 
-				<h3>Hall Effect Sensor</h3>
-				<div class="inputBlock">
-					<input name="nvs:BeelineNVS:bit:dieSensEn:1" type="hidden" id="_dieSensEn1" value="<!--#nvs:BeelineNVS:bit:dieSensEn:1-->">
-					<input type="checkbox" id="dieSensEn1" for="_dieSensEn1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensEn:1--> >
-					<label for="dieSensEn1">Enable</label><br>
-					Delay: <input type="text" name="nvs:BeelineNVS:int:delayHall" value="<!--#nvs:BeelineNVS:int:delayHall-->" >ms
-				</div>
-
-				<h3>Battery Voltage</h3>
-				<div class="inputBlock">
-					<input name="nvs:BeelineNVS:bit:dieSensEn:2" type="hidden" id="_dieSensEn2" value="<!--#nvs:BeelineNVS:bit:dieSensEn:2-->">
-					<input type="checkbox" id="dieSensEn2" for="_dieSensEn2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensEn:2--> >
-					<label for="dieSensEn2">Enable</label><br>
-					Delay: <input type="text" name="nvs:BeelineNVS:int:delayBattV" value="<!--#nvs:BeelineNVS:int:delayBattV-->" >ms
-				</div>
-
-				<h3>Message Routing</h3>
-				<div class="inputBlock">
-					<input name="nvs:BeelineNVS:bit:dieSensInRt:0" type="hidden" id="_dieSensInRt0" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:0-->">
-					<input type="checkbox" id="dieSensInRt0" for="_dieSensInRt0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:0--> >
-					<label for="_dieSensInRt0">Forward to LoRa</label><br>
-
-					<input name="nvs:BeelineNVS:bit:dieSensInRt:1" type="hidden" id="_dieSensInRt1" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:1-->">
-					<input type="checkbox" id="dieSensInRt1" for="_dieSensInRt1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:1--> >
-					<label for="_dieSensInRt1">Forward to MQTT</label><br>
-
-					<input name="nvs:BeelineNVS:bit:dieSensInRt:2" type="hidden" id="_dieSensInRt2" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:2-->">
-					<input type="checkbox" id="dieSensInRt2" for="_dieSensInRt2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:2--> >
-					<label for="_dieSensInRt2">Forward to Elasticsearch</label><br>
-
-					<input name="nvs:BeelineNVS:bit:dieSensInRt:3" type="hidden" id="_dieSensInRt3" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:3-->">
-					<input type="checkbox" id="dieSensInRt3" for="_dieSensInRt3" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:3--> >
-					<label for="_dieSensInRt3">Forward to Display</label><br>
-				</div>
-				<button>Save Settings</button>
-		    </form>
+	<h3>Hall Effect Sensor</h3>
+	<div class="inputBlock">
+		<input name="nvs:BeelineNVS:bit:dieSensEn:1" type="hidden" id="_dieSensEn1" value="<!--#nvs:BeelineNVS:bit:dieSensEn:1-->">
+		<input type="checkbox" id="dieSensEn1" for="_dieSensEn1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensEn:1--> >
+		<label for="dieSensEn1">Enable</label><br>
+		<div class="input">
+			<div class="l">Delay:</div>
+			<div class="m">
+				<input type="text" name="nvs:BeelineNVS:int:delayHall" value="<!--#nvs:BeelineNVS:int:delayHall-->" >
+			</div>
+			<div class="r">ms</div>
 		</div>
-	</body>
-</html>
+		<p class="info">
+			Message Format:<br>
+			&nbsp;&nbsp;Name: Hall<br>
+			&nbsp;&nbsp;Type: Float<br>
+		</p>
+	</div>
+
+	<h3>Battery Voltage</h3>
+	<div class="inputBlock">
+		<input name="nvs:BeelineNVS:bit:dieSensEn:2" type="hidden" id="_dieSensEn2" value="<!--#nvs:BeelineNVS:bit:dieSensEn:2-->">
+		<input type="checkbox" id="dieSensEn2" for="_dieSensEn2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensEn:2--> >
+		<label for="dieSensEn2">Enable</label><br>
+
+
+		<div class="input">
+			<div class="l">Delay:</div>
+			<div class="m">
+				<input type="text" name="nvs:BeelineNVS:int:delayBattV" value="<!--#nvs:BeelineNVS:int:delayBattV-->" >
+			</div>
+			<div class="r">ms</div>
+		</div>
+		<p class="info">
+			ADC1_0, Pin 36, 11dB attenuation, multiplied by 2<br>
+			External 100k/100k resistor driver connected to battery.<br>
+			Message Format:<br>
+			&nbsp;&nbsp;Name: Hall<br>
+			&nbsp;&nbsp;Type: Float<br>
+		</p>
+	</div>
+
+	<h3>Message Routing</h3>
+	<div class="inputBlock">
+		<input name="nvs:BeelineNVS:bit:dieSensInRt:0" type="hidden" id="_dieSensInRt0" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:0-->">
+		<input type="checkbox" id="dieSensInRt0" for="_dieSensInRt0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:0--> >
+		<label for="_dieSensInRt0">Forward to LoRa</label><br>
+
+		<input name="nvs:BeelineNVS:bit:dieSensInRt:1" type="hidden" id="_dieSensInRt1" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:1-->">
+		<input type="checkbox" id="dieSensInRt1" for="_dieSensInRt1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:1--> >
+		<label for="_dieSensInRt1">Forward to MQTT</label><br>
+
+		<input name="nvs:BeelineNVS:bit:dieSensInRt:2" type="hidden" id="_dieSensInRt2" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:2-->">
+		<input type="checkbox" id="dieSensInRt2" for="_dieSensInRt2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:2--> >
+		<label for="_dieSensInRt2">Forward to Elasticsearch</label><br>
+
+		<input name="nvs:BeelineNVS:bit:dieSensInRt:3" type="hidden" id="_dieSensInRt3" value="<!--#nvs:BeelineNVS:bit:dieSensInRt:3-->">
+		<input type="checkbox" id="dieSensInRt3" for="_dieSensInRt3" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:dieSensInRt:3--> >
+		<label for="_dieSensInRt3">Forward to Display</label><br>
+	</div>
+	<button>Save Settings</button>
+</form>
+<!--#page:template_bottom_html-->

@@ -1,9 +1,9 @@
-#include <nvs.h>
-#include <mqtt_client.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
+#include <nvs.h>
+#include <mqtt_client.h>
 #include <esp_log.h>
 #include <sys/param.h>
 
@@ -92,7 +92,7 @@ static esp_err_t mqttConnectionEventHandler(esp_mqtt_event_handle_t event) {
         	char value[64] = {0};
         	strncpy(value, event->data,  MIN(event->data_len, sizeof(value)));
 
-        	ESP_LOGI(TAG, "topic %s", topic);
+        	// ESP_LOGI(TAG, "topic %s", topic);
 
         	const char * delim = "/";
         	char * subTopic = strtok(topic, delim);
@@ -229,7 +229,7 @@ static void mqttConnectionTask(void *arg){
 	while (true){
 
 		message_t message;
-		if (!xQueueReceive(mqttConnectionQueue, &message, 4000 / portTICK_RATE_MS)) {
+		if (!xQueueReceive(mqttConnectionQueue, &message, 500 / portTICK_RATE_MS)) {
 			continue;
 		}
 
@@ -277,8 +277,8 @@ static void mqttConnectionTask(void *arg){
 		int msg_id;
 		msg_id = esp_mqtt_client_publish(client, mqttTopic, mqttValue, 0, 1, 0);
 
-		ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttTopic, mqttValue, msg_id);
-		ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+		// ESP_LOGI(TAG, "T: %s, V: %s -> MQTT %d\n", mqttTopic, mqttValue, msg_id);
+		// ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
 	}
 }
 
@@ -298,7 +298,7 @@ void mqttConnectionInit(void){
 
 	mqttConnectionQueue = xQueueCreate(4, sizeof(message_t));
 
-	xTaskCreate(&mqttConnectionTask, "mqttConnection", 4096, NULL, 13, NULL);
+	xTaskCreate(&mqttConnectionTask, "mqttConnection", 4096, NULL, 10, NULL);
 
 	wifiUsed();
 }

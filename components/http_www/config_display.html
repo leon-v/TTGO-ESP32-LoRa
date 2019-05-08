@@ -1,25 +1,21 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Beeline - Display Configuration</title>
-		<link href="./style.css" rel="stylesheet" type="text/css">
-		<script type="text/javascript" src="/javascript.js"></script>
-	</head>
-	<body >
-		<div class="left">
-			<iframe src="./menu.html"></iframe>
-		</div>
-		<div class="right">
-			<h2>Display Configuration</h2>
-			<form action="" method="post">
+<!--#page:template_top_html-->
+<h2>Display Configuration</h2>
+<form action="" method="post">
 
-				<h3>Template</h3>
-				<div class="inputBlock" style="height:200px;width:400px;">
-					<textarea name="nvs:BeelineNVS:string:displayTemplate"><!--#nvs:BeelineNVS:string:displayTemplate--></textarea><br>
-				</div>
-
-				<button>Save Settings</button>
-		    </form>
+	<h3>Template</h3>
+	<div class="inputBlock">
+		<div class="input" style="height:200px;width:400px;">
+			<textarea name="nvs:BeelineNVS:string:displayTemplate"><!--#nvs:BeelineNVS:string:displayTemplate--></textarea><br>
 		</div>
-	</body>
-</html>
+		<p class="info">
+			Text entered here will be displayed on the OLED display<br>
+			To display message values, use this format:<br>
+			[DEVLICE:SENSOR]<br>
+			e.g. [<!--#uniqueName-->:Battery] will show this devices battery voltage.<br>
+			NOTE: Messages must be routed to this device's display before they show.<br>
+		</p>
+	</div>
+
+	<button>Save Settings</button>
+</form>
+<!--#page:template_bottom_html-->

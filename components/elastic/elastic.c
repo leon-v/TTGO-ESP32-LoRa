@@ -142,7 +142,7 @@ static void elasticTask(void *arg){
 		vTaskDelay(2); // Delay for 2 ticks to allow scheduler time to execute
 
 		message_t message;
-		if (!xQueueReceive(elasticQueue, &message, 4000 / portTICK_RATE_MS)) {
+		if (!xQueueReceive(elasticQueue, &message, 500 / portTICK_RATE_MS)) {
 			continue;
 		}
 
@@ -247,9 +247,9 @@ void elasticQueueAdd(message_t * message){
 
 void elasticInit(void) {
 
-	elasticQueue = xQueueCreate(4, sizeof(message_t));
+	elasticQueue = xQueueCreate(8, sizeof(message_t));
 
-	xTaskCreate(&elasticTask, "elasticTask", 8192, NULL, 13, NULL);
+	xTaskCreate(&elasticTask, "elasticTask", 8192, NULL, 11, NULL);
 
 	wifiUsed();
 }

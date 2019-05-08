@@ -1,74 +1,84 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Beeline - LoRa Configuration</title>
-		<link href="./style.css" rel="stylesheet" type="text/css">
-		<script type="text/javascript" src="/javascript.js"></script>
-	</head>
-	<body >
-		<div class="left">
-			<iframe src="./menu.html"></iframe>
+<!--#page:template_top_html-->
+<h2>LoRa Configuration</h2>
+<form action="" method="post">
+
+	<h3>Frequency</h3>
+	<div class="inputBlock">
+		<div class="input">
+			<div class="m">
+				<input type="text" name="nvs:BeelineNVS:int:loraFrequency" value="<!--#nvs:BeelineNVS:int:loraFrequency-->" >
+			</div>
+			<div class="r">Hz</div>
 		</div>
-		<div class="right">
-			<h2>LoRa Configuration</h2>
-			<form action="" method="post">
+		<p class="info">
+			For RX and TX.<br>
+			NOTE: Check the specific frequency range your LoRa device supports<br>
+		</p>
+	</div>
 
-				<h3>Frequency</h3>
-				<div class="inputBlock">
-					<div class="input">
-						<input type="text" name="nvs:BeelineNVS:int:loraFrequency" value="<!--#nvs:BeelineNVS:int:loraFrequency-->" >
-					</div>
-				</div>
-
-				<h3>TX Sync Word</h3>
-				<div class="inputBlock">
-					<div class="input">
-						<input type="text" name="nvs:BeelineNVS:string:loraTXSyncWord" value="<!--#nvs:BeelineNVS:string:loraTXSyncWord-->" >
-					</div>
-				</div>
-
-				<h3>RX Sync Word</h3>
-				<div class="inputBlock">
-					<div class="input">
-						<input type="text" name="nvs:BeelineNVS:string:loraRXSyncWord" value="<!--#nvs:BeelineNVS:string:loraRXSyncWord-->" >
-					</div>
-				</div>
-
-				<h3>Encryption Key</h3>
-				<div class="inputBlock">
-					<div class="input" maxlength="16">
-						<input type="text" name="nvs:BeelineNVS:string:loraKey" value="<!--#nvs:BeelineNVS:string:loraKey-->" >
-					</div>
-		    		<p class="info">Must be 16 characters or less.</p>
-				</div>
-
-				<h3>Incoming Message Routing</h3>
-				<div class="inputBlock">
-					<input name="nvs:BeelineNVS:bit:loraInRt:0" type="hidden" id="_loraInRt0" value="<!--#nvs:BeelineNVS:bit:loraInRt:0-->">
-					<input type="checkbox" id="loraInRt0" for="_loraInRt0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:0--> >
-					<label for="_loraInRt0">Forward to LoRa</label><br>
-
-					<input name="nvs:BeelineNVS:bit:loraInRt:1" type="hidden" id="_loraInRt1" value="<!--#nvs:BeelineNVS:bit:loraInRt:1-->">
-					<input type="checkbox" id="loraInRt1" for="_loraInRt1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:1--> >
-					<label for="_loraInRt1">Forward to MQTT</label><br>
-
-					<input name="nvs:BeelineNVS:bit:loraInRt:2" type="hidden" id="_loraInRt2" value="<!--#nvs:BeelineNVS:bit:loraInRt:2-->">
-					<input type="checkbox" id="loraInRt2" for="_loraInRt2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:2--> >
-					<label for="_loraInRt2">Forward to Elasticsearch</label><br>
-
-					<input name="nvs:BeelineNVS:bit:loraInRt:3" type="hidden" id="_loraInRt3" value="<!--#nvs:BeelineNVS:bit:loraInRt:3-->">
-					<input type="checkbox" id="loraInRt3" for="_loraInRt3" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:3--> >
-					<label for="_loraInRt3">Forward to Display</label><br>
-				</div>
-
-				<h3>Idle</h3>
-				<div class="inputBlock">
-					<!--#idleDisable>>1-->
-    				<label for="idleDisable>>1">Disable RX when not used</label><br>
-				</div>
-
-				<button>Save Settings</button>
-		    </form>
+	<h3>TX Sync Word</h3>
+	<div class="inputBlock">
+		<div class="input">
+			<input type="text" name="nvs:BeelineNVS:int:loraTXSyncWord" value="<!--#nvs:BeelineNVS:int:loraTXSyncWord-->" >
 		</div>
-	</body>
-</html>
+		<p class="info">
+			Used to identify TX messages for your network<br>
+			NOTE: Routers need to use the same TX sync word as sensor nodes RX sync word<br>
+		</p>
+	</div>
+
+	<h3>RX Sync Word</h3>
+	<div class="inputBlock">
+		<div class="input">
+			<input type="text" name="nvs:BeelineNVS:int:loraRXSyncWord" value="<!--#nvs:BeelineNVS:int:loraRXSyncWord-->" >
+		</div>
+		<p class="info">
+			Used to identify RX messages for your network<br>
+			NOTE: Routers need to use the same RX sync word as sensor nodes TX sync word<br>
+		</p>
+	</div>
+
+	<h3>Encryption Key</h3>
+	<div class="inputBlock">
+		<div class="input" maxlength="16">
+			<input type="text" name="nvs:BeelineNVS:string:loraKey" value="<!--#nvs:BeelineNVS:string:loraKey-->" >
+		</div>
+		<p class="info">
+			Set this to encrypt and decrypt all messages sent over LoRa<br>
+			Must be exactly 16 characters or less because I haven't done anything to create a hash<br>
+		</p>
+	</div>
+
+	<h3>Incoming Message Routing</h3>
+	<div class="inputBlock">
+		<input name="nvs:BeelineNVS:bit:loraInRt:0" type="hidden" id="_loraInRt0" value="<!--#nvs:BeelineNVS:bit:loraInRt:0-->">
+		<input type="checkbox" id="loraInRt0" for="_loraInRt0" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:0--> >
+		<label for="_loraInRt0">Forward to LoRa</label><br>
+
+		<input name="nvs:BeelineNVS:bit:loraInRt:1" type="hidden" id="_loraInRt1" value="<!--#nvs:BeelineNVS:bit:loraInRt:1-->">
+		<input type="checkbox" id="loraInRt1" for="_loraInRt1" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:1--> >
+		<label for="_loraInRt1">Forward to MQTT</label><br>
+
+		<input name="nvs:BeelineNVS:bit:loraInRt:2" type="hidden" id="_loraInRt2" value="<!--#nvs:BeelineNVS:bit:loraInRt:2-->">
+		<input type="checkbox" id="loraInRt2" for="_loraInRt2" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:2--> >
+		<label for="_loraInRt2">Forward to Elasticsearch</label><br>
+
+		<input name="nvs:BeelineNVS:bit:loraInRt:3" type="hidden" id="_loraInRt3" value="<!--#nvs:BeelineNVS:bit:loraInRt:3-->">
+		<input type="checkbox" id="loraInRt3" for="_loraInRt3" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:loraInRt:3--> >
+		<label for="_loraInRt3">Forward to Display</label><br>
+	</div>
+
+	<h3>Idle</h3>
+	<div class="inputBlock">
+		<input name="nvs:BeelineNVS:bit:idleDisable:1" type="hidden" id="_loraInRt3" value="<!--#nvs:BeelineNVS:bit:idleDisable:1-->">
+		<input type="checkbox" id="loraInRt3" for="_loraInRt3" onchange="checkboxChange(this)" <!--#nvs:BeelineNVS:checked:idleDisable:1--> >
+		<label for="_loraInRt3">Disable RX when not used</label><br>
+		<p class="info">
+			When checked, the LoRa module will go into sleep mode instead of listen mode if no valid packet is received after 60 seconds.<br>
+			Packets are only valid if the sync word matches and was successfully decrypted if an encryption key is set.<br>
+		</p>
+	</div>
+
+	<button>Save Settings</button>
+</form>
+<!--#page:template_bottom_html-->

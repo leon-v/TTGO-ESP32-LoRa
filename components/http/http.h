@@ -8,19 +8,12 @@ typedef struct {
 	const char * type;
 } httpPage_t;
 
-typedef enum {
-	SSI_TYPE_TEXT = 0,
-	SSI_TYPE_DISAPLY_TEXT,
-	SSI_TYPE_TEXTAREA,
-    SSI_TYPE_PASSWORD,
-    SSI_TYPE_INTEGER,
-    SSI_TYPE_CHECKBOX
-} ssiTagType_t;
-
-typedef struct{
-	const char * key;
-	const ssiTagType_t type;
-} ssiTag_t;
+typedef struct {
+	const char * uri;
+	const char * start;
+	const char * end;
+	const char * type;
+} httpFile_t;
 
 typedef struct{
 	char * key;
@@ -33,8 +26,8 @@ typedef struct{
 } tokens_t;
 
 void httpServerInit(void);
-esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength);
 void httpPageRegister(httpd_handle_t server, const httpPage_t * httpPage);
+void httpFileRegister(httpd_handle_t server, const httpFile_t * httpFile);
 
 #define MAX_HTTP_SSI_KEY_LENGTH 32
 

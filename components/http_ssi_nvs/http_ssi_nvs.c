@@ -19,55 +19,55 @@ void httpSSINVSSetBit(nvs_handle nvsHandle, char * nvsKey, int bit, char * postV
 
 	ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, nvsKey, value));
 }
-void httpSSINVSGetBit(char * tag, nvs_handle nvsHandle, char * nvsKey, int bit){
+void httpSSINVSGetBit(char * outBuffer, nvs_handle nvsHandle, char * nvsKey, int bit){
 	uint8_t value;
 
 	nvs_get_u8(nvsHandle, nvsKey, &value);
 
 	value = (value >> bit) & 0x01;
 
-	itoa(value, tag, 10);
+	itoa(value, outBuffer, 10);
 }
 
 void httpSSINVSSetInt32(nvs_handle nvsHandle, char * nvsKey, char * postValue){
 	nvs_set_u32(nvsHandle, nvsKey, atoi(postValue));
 }
 
-void httpSSINVSGetInt32(char * tag, nvs_handle nvsHandle, char * nvsKey){
+void httpSSINVSGetInt32(char * outBuffer, nvs_handle nvsHandle, char * nvsKey){
 	uint32_t value;
 
 	nvs_get_u32(nvsHandle, nvsKey, &value);
 
-	itoa(value, tag, 10);
+	itoa(value, outBuffer, 10);
 }
 
 void httpSSINVSSetString(nvs_handle nvsHandle, char * nvsKey, char * value){
 	ESP_ERROR_CHECK(nvs_set_str(nvsHandle, nvsKey, value));
 }
 
-void httpSSINVSGetString(char * tag, nvs_handle nvsHandle, char * nvsKey){
+void httpSSINVSGetString(char * outBuffer, nvs_handle nvsHandle, char * nvsKey){
 	size_t nvsLength = CONFIG_HTTP_NVS_MAX_STRING_LENGTH;
 
-	nvs_get_str(nvsHandle, nvsKey, tag, &nvsLength);
+	nvs_get_str(nvsHandle, nvsKey, outBuffer, &nvsLength);
 }
 
-void httpSSINVSGet(char * tag, char * ssiTag){
+void httpSSINVSGet(char * outBuffer, char * ssiTag){
 
 	char * nvsName = strtok(ssiTag, ":");
 	if (!nvsName) {
-		strcpy(tag, "Missing NVS name");
+		strcpy(outBuffer, "Missing NVS name");
 		return;
 	}
 
 	char * nvsType = strtok(NULL, ":");
 	if (!nvsType) {
-		strcpy(tag, "Missing NVS type");
+		strcpy(outBuffer, "Missing NVS type");
 		return;
 	}
 
 	char * nvsKey = strtok(NULL, ":");
 	if (!nvsKey) {
-		strcpy(tag, "Missing NVS key");
+		strcpy(outBuffer, "Missing NVS key");
 		return;
 	}
 
@@ -75,30 +75,30 @@ void httpSSINVSGet(char * tag, char * ssiTag){
 	ESP_ERROR_CHECK(nvs_open(nvsName, NVS_READONLY, &nvsHandle));
 
 	if (strcmp(nvsType, "string") == 0){
-		httpSSINVSGetString(tag, nvsHandle, nvsKey);
+		httpSSINVSGetString(outBuffer, nvsHandle, nvsKey);
 	}
 	else if (strcmp(nvsType, "int") == 0){
-		httpSSINVSGetInt32(tag, nvsHandle, nvsKey);
+		httpSSINVSGetInt32(outBuffer, nvsHandle, nvsKey);
 	}
 	else if (strcmp(nvsType, "bit") == 0){
 
 		char * bitStr = strtok(NULL, ":");
-		httpSSINVSGetBit(tag, nvsHandle, nvsKey, atoi(bitStr));
+		httpSSINVSGetBit(outBuffer, nvsHandle, nvsKey, atoi(bitStr));
 	}
 	else if (strcmp(nvsType, "checked") == 0){
 
 		char * bitStr = strtok(NULL, ":");
-		httpSSINVSGetBit(tag, nvsHandle, nvsKey, atoi(bitStr));
+		httpSSINVSGetBit(outBuffer, nvsHandle, nvsKey, atoi(bitStr));
 
-		if (strcmp(tag, "1") == 0){
-			strcpy(tag, "checked");
+		if (strcmp(outBuffer, "1") == 0){
+			strcpy(outBuffer, "checked");
 		}
 		else{
-			strcpy(tag, "");
+			strcpy(outBuffer, "");
 		}
 	}
 	else{
-		strcpy(tag, "Failed to parse NVS type");
+		strcpy(outBuffer, "Failed to parse NVS type");
 	}
 
 	nvs_close(nvsHandle);

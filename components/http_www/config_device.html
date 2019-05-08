@@ -1,27 +1,18 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Beeline - Device Configuration</title>
-		<link href="./style.css" rel="stylesheet" type="text/css">
-		<script type="text/javascript" src="./javascript.js"></script>
-	</head>
-	<body >
-		<div class="left">
-			<iframe src="./menu.html"></iframe>
-		</div>
-		<div class="right">
-			<h2>Device Configuration</h2>
-			<form action="" method="post">
+<!--#page:template_top_html-->
+<h2>Device Configuration</h2>
+<form action="" method="post">
 
-				<h3>Unique Name</h3>
-				<div class="inputBlock">
-					<div class="input">
-						<input type="text" name="nvs:BeelineNVS:string:uniqueName" value="<!--#nvs:BeelineNVS:string:uniqueName-->" >
-					</div>
-				</div>
-
-				<button>Save Settings</button>
-		    </form>
+	<h3>Unique Name</h3>
+	<div class="inputBlock">
+		<div class="input">
+			<input type="text" name="nvs:BeelineNVS:string:uniqueName" value="<!--#nvs:BeelineNVS:string:uniqueName-->" >
 		</div>
-	</body>
-</html>
+		<p class="info">
+			Short unique name for this device.<br>
+			Must only contain letters and underscore.
+		</p>
+	</div>
+
+	<button>Save Settings</button>
+</form>
+<!--#page:template_bottom_html-->

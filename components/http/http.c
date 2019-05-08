@@ -1,5 +1,3 @@
-
-#include <nvs.h>
 #include <sys/param.h>
 #include <esp_http_server.h>
 #include <http_parser.h>
@@ -7,6 +5,8 @@
 
 #include "http.h"
 #include "http_ssi_nvs.h"
+#include "http_ssi_functions.h"
+#include "http_ssi_page.h"
 
 #include "wifi.h"
 
@@ -18,15 +18,17 @@
 #include "config_mqtt_html.h"
 #include "config_ntp_html.h"
 #include "config_wifi_html.h"
+#include "favicon_png.h"
 #include "index_html.h"
 #include "javascript_js.h"
 #include "menu_css.h"
 #include "menu_html.h"
+#include "runtime_stats.h"
 #include "style_css.h"
 
 #define TAG "http"
 
-#define HTTP_STACK_SIZE 8192
+#define HTTP_STACK_SIZE 16384
 #define HTTP_BUFFER_SIZE HTTP_STACK_SIZE / 2
 
 #define START_SSI "<!--#"
@@ -127,171 +129,6 @@ static char * httpServerGetTokenValue(tokens_t * tokens, const char * key){
 	return NULL;
 }
 
-static void httpGetBoolTagKey(char * ssiTagKeyTrimed, const char * ssiTagKey){
-
-	char * end = strstr(ssiTagKey, ">>");
-
-	if (!end){
-		strcpy(ssiTagKeyTrimed, ssiTagKey);
-	}
-
-	int length = end - ssiTagKey;
-
-	strncpy(ssiTagKeyTrimed, ssiTagKey, length);
-}
-
-static int httpGetBoolTagRotate(const char * ssiTagKey){
-
-	char * rotateString = strstr(ssiTagKey, ">>");
-
-	return rotateString ? atoi(rotateString + 2) : 0;
-}
-
-
-
-static void httpReaplceSSI(char * outBuffer, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength) {
-
-	char * file = (char * ) fileStart;
-	char * out = outBuffer;
-
-	int ssiTagsIndex = 0;
-	char ssiKey[MAX_HTTP_SSI_KEY_LENGTH] = {"\0"};
-
-
-	nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
-
-	unsigned int appendLength = 0;
-
-	while (true)  {
-
-		if ( ((fileEnd - file) < sizeof(START_SSI)) || (strncmp(file, START_SSI, strlen(START_SSI)) != 0) ) {
-
-
-			appendLength = 1;
-
-			if ((file + appendLength) > fileEnd) {
-				nvs_close(nvsHandle);
-				return;
-			}
-
-			strncpy(out, file, appendLength);
-
-			file+= appendLength;
-			out+= appendLength;
-
-			continue;
-		}
-
-		file+= strlen(START_SSI);
-
-		ssiKey[0] = '\0';
-
-		while ( ((fileEnd - file) < sizeof(END_SSI)) || (strncmp(file, END_SSI, strlen(END_SSI)) != 0) ) {
-
-			appendLength = 1;
-
-			if ((file + appendLength) > fileEnd) {
-				nvs_close(nvsHandle);
-				return;
-			}
-
-			if (strlen(ssiKey) >= (sizeof(ssiKey) - 1)){
-				file+= appendLength;
-				continue;
-			}
-
-			strncat(ssiKey, file, appendLength);
-
-			file+= appendLength;
-		}
-
-		file+= sizeof(END_SSI) - 1;
-
-		char replaceSSIValue[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
-		strcpy(replaceSSIValue, "SSI Value Unhandled");
-
-		for (ssiTagsIndex = 0; ssiTagsIndex < ssiTagsLength; ssiTagsIndex++) {
-
-			const ssiTag_t ssiTag = ssiTags[ssiTagsIndex];
-
-			if (strcmp(ssiKey, ssiTag.key) != 0) {
-				continue;
-			}
-
-
-			char nvsStringValue[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
-			size_t nvsLength = sizeof(nvsStringValue);
-			uint32_t nvsIntValue;
-			uint8_t nvsCharValue;
-			char ssiKeyTrim[MAX_HTTP_SSI_KEY_LENGTH] = {"\0"};
-			int rotate = 0;
-
-			switch (ssiTag.type) {
-
-				case SSI_TYPE_TEXT:
-					nvs_get_str(nvsHandle, ssiTag.key, nvsStringValue, &nvsLength);
-					nvsStringValue[nvsLength] = '\0';
-					sprintf(replaceSSIValue, "<input type=\"text\" name=\"%s\" value=\"%s\" />", ssiTag.key, nvsStringValue);
-				break;
-
-				case SSI_TYPE_DISAPLY_TEXT:
-					nvs_get_str(nvsHandle, ssiTag.key, nvsStringValue, &nvsLength);
-					nvsStringValue[nvsLength] = '\0';
-					sprintf(replaceSSIValue, "%s", nvsStringValue);
-				break;
-
-				case SSI_TYPE_TEXTAREA:
-					nvs_get_str(nvsHandle, ssiTag.key, nvsStringValue, &nvsLength);
-					nvsStringValue[nvsLength] = '\0';
-					sprintf(replaceSSIValue, "<textarea name=\"%s\">%s</textarea>", ssiTag.key, nvsStringValue);
-				break;
-
-				case SSI_TYPE_PASSWORD:
-					nvs_get_str(nvsHandle, ssiTag.key, nvsStringValue, &nvsLength);
-					nvsStringValue[nvsLength] = '\0';
-					sprintf(replaceSSIValue, "<input type=\"password\" name=\"%s\" value=\"%s\" />", ssiTag.key, nvsStringValue);
-				break;
-
-				case SSI_TYPE_INTEGER:
-					nvs_get_u32(nvsHandle, ssiTag.key, &nvsIntValue);
-					itoa(nvsIntValue, nvsStringValue, 10);
-					sprintf(replaceSSIValue, "<input type=\"number\" name=\"%s\" value=\"%s\" />", ssiTag.key, nvsStringValue);
-				break;
-
-				case SSI_TYPE_CHECKBOX:
-
-					httpGetBoolTagKey(ssiKeyTrim, ssiTag.key);
-					rotate = httpGetBoolTagRotate(ssiTag.key);
-
-					nvs_get_u8(nvsHandle, ssiKeyTrim, &nvsCharValue);
-
-					nvsCharValue = (nvsCharValue >> rotate) & 0x01;
-
-					strcpy(nvsStringValue, nvsCharValue ? "checked" : "");
-
-					sprintf(replaceSSIValue, "\
-							<input type=\"hidden\" id=\"_%s\" name=\"%s\" value=\"%d\">\
-							<input type=\"checkbox\" id=\"%s\" onchange=\"document.getElementById('_%s').value = this.checked?1:0;\" %s>\
-						",
-						ssiTag.key, ssiTag.key, nvsCharValue,
-						ssiTag.key, ssiTag.key, nvsStringValue
-					);
-				break;
-			}
-
-			break;
-		}
-		// strcpy(replaceSSIValue, "TEST");
-
-		appendLength = strlen(replaceSSIValue);
-		strncpy(out, replaceSSIValue, appendLength);
-		out+= appendLength;
-	}
-
-	nvs_close(nvsHandle);
-}
-
 static esp_err_t httpGetPost(httpd_req_t *req, char * postString, unsigned int postStringLength){
 
 	int ret, remaining = req->content_len;
@@ -310,118 +147,35 @@ static esp_err_t httpGetPost(httpd_req_t *req, char * postString, unsigned int p
     return ESP_OK;
 }
 
-static void httpServerSavePost(httpd_req_t * req, char * buffer, unsigned int bufferLength, const ssiTag_t * ssiTags, int ssiTagsLength){
-
-	ESP_ERROR_CHECK(httpGetPost(req, buffer, bufferLength));
-
-	printf("Got post data :%s\n", buffer);
-
-	tokens_t post;
-	httpServerParseValues(&post, buffer, "&", "=", "\0");
-
-	nvs_handle nvsHandle;
-	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
-
-    for (int ssiTagsIndex = 0; ssiTagsIndex < ssiTagsLength; ssiTagsIndex++) {
-
-		const ssiTag_t ssiTag = ssiTags[ssiTagsIndex];
-
-		char * value = httpServerGetTokenValue(&post, ssiTag.key);
-
-		if (!value){
-			continue;
-		}
-
-		char ssiKeyTrim[MAX_HTTP_SSI_KEY_LENGTH] = {"\0"};
-		int rotate = 0;
-		unsigned char nvsCharValue = 0;
-
-		switch (ssiTag.type) {
-
-			case SSI_TYPE_DISAPLY_TEXT:
-				// Display values should never save
-			break;
-
-			case SSI_TYPE_TEXT:
-			case SSI_TYPE_PASSWORD:
-			case SSI_TYPE_TEXTAREA:
-				ESP_ERROR_CHECK(nvs_set_str(nvsHandle, ssiTag.key, value));
-			break;
-
-			case SSI_TYPE_INTEGER:
-				ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, ssiTag.key, atoi(value)));
-			break;
-
-			case SSI_TYPE_CHECKBOX:
-
-				httpGetBoolTagKey(ssiKeyTrim, ssiTag.key);
-				rotate = httpGetBoolTagRotate(ssiTag.key);
-
-				nvs_get_u8(nvsHandle, ssiKeyTrim, &nvsCharValue);
-
-				if (atoi(value)) {
-					nvsCharValue|= (0x01 << rotate);
-				}
-				else{
-					nvsCharValue&= ~(0x01 << rotate);
-				}
-
-				ESP_ERROR_CHECK(nvs_set_u8(nvsHandle, ssiKeyTrim, nvsCharValue));
-				ESP_ERROR_CHECK(nvs_commit(nvsHandle));
-			break;
-		}
-
-
-		ESP_ERROR_CHECK(nvs_commit(nvsHandle));
-	}
-
-   	nvs_close(nvsHandle);
-}
-
-esp_err_t httpRespond(httpd_req_t *req, const char * fileStart, const char * fileEnd, const ssiTag_t * ssiTags, int ssiTagsLength) {
-
-	wifiUsed();
-
-	char outBuffer[HTTP_BUFFER_SIZE];
-
-	if (req->method == HTTP_POST){
-		httpServerSavePost(req, outBuffer, sizeof(outBuffer), ssiTags, ssiTagsLength);
-	}
-
-
-	if (ssiTags) {
-		httpReaplceSSI(outBuffer, fileStart, fileEnd, ssiTags, ssiTagsLength);
-	}
-
-	else{
-		strncpy(outBuffer, fileStart, fileEnd - fileStart);
-	}
-
-
-	return httpd_resp_send(req, outBuffer, strlen(outBuffer));
-}
-
 void stop_webserver(httpd_handle_t server) {
     // Stop the httpd server
     httpd_stop(server);
 }
 
-void httpPageReplaceTag(char * tag) {
+void httpPageReplaceTag(char * outBuffer, char * tag) {
 
 	char * module = strtok(tag, ":");
 
 	if (!module){
-		strcpy(tag, "Failed to get module from tag");
+		strcpy(outBuffer, "Failed to get module from tag");
 	}
+
+	char * ssiTag = strtok(NULL, "");
 
 	if (strcmp(module, "nvs") == 0){
-
-		char * ssiTag = strtok(NULL, "");
-		httpSSINVSGet(tag, ssiTag);
-
+		httpSSINVSGet(outBuffer, ssiTag);
 	}
+
+	else if (strcmp(module, "functions") == 0){
+		httpSSIFunctionsGet(outBuffer, ssiTag);
+	}
+
+	else if (strcmp(module, "page") == 0){
+		httpSSIPageGet(outBuffer, ssiTag);
+	}
+
 	else{
-		strcpy(tag, "Failed to parse module for tag");
+		strcpy(outBuffer, "Failed to parse module for tag");
 	}
 }
 static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
@@ -462,9 +216,9 @@ static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
 		memcpy(tag, start, length);
 		tag[length] = '\0';
 
-		httpPageReplaceTag(tag);
+		char * outBufferEnd = outBuffer + strlen(outBuffer);
 
-		strcat(outBuffer, tag);
+		httpPageReplaceTag(outBufferEnd, tag);
 
 		end+= strlen(END_SSI);
 		start = strstr(end, START_SSI);
@@ -511,26 +265,20 @@ static esp_err_t httpPageHandler(httpd_req_t *req){
 
 	char outBuffer[HTTP_BUFFER_SIZE];
 
-	if (req->method == HTTP_POST){
+	if (req->method == HTTP_POST) {
 		httpPagePost(req, outBuffer, sizeof(outBuffer));
 	}
 
-	httpd_resp_set_type(req, httpPage->type);
-	httpPageGetContent(outBuffer, req);
+	if (httpPage->type){
+		httpd_resp_set_type(req, httpPage->type);
+	}
 
-	// if (req->method == HTTP_POST){
-	// 	httpServerSavePost(req, outBuffer, sizeof(outBuffer), ssiTags, ssiTagsLength);
-	// }
-
-
-	// if (ssiTags) {
-	// 	httpReaplceSSI(outBuffer, fileStart, fileEnd, ssiTags, ssiTagsLength);
-	// }
-
-	// else{
-		// strncpy(outBuffer, fileStart, fileEnd - fileStart);
-	// }
-
+	if (httpPage->page){
+		httpPageGetContent(outBuffer, req);
+	}
+	else{
+		strcpy(outBuffer, "Nothing found to populate content.");
+	}
 
 	return httpd_resp_send(req, outBuffer, strlen(outBuffer));
 }
@@ -555,6 +303,33 @@ void httpPageRegister(httpd_handle_t server, const httpPage_t * httpPage){
 
 	httpd_register_uri_handler(server, &postURI);
 }
+
+static esp_err_t httpFileHandler(httpd_req_t *req){
+
+	httpFile_t * httpFile = (httpFile_t *) req->user_ctx;
+
+	wifiUsed();
+
+	if (httpFile->type){
+		httpd_resp_set_type(req, httpFile->type);
+	}
+
+	size_t length = httpFile->end - httpFile->start;
+	return httpd_resp_send(req, httpFile->start, length);
+}
+
+void httpFileRegister(httpd_handle_t server, const httpFile_t * httpFile){
+
+	httpd_uri_t getURI = {
+	    .uri      	= httpFile->uri,
+	    .method   	= HTTP_GET,
+	    .handler  	= httpFileHandler,
+	    .user_ctx	= httpFile,
+	};
+
+	httpd_register_uri_handler(server, &getURI);
+}
+
 static httpd_handle_t start_webserver(void) {
 
 	wifiUsed();
@@ -570,7 +345,7 @@ static httpd_handle_t start_webserver(void) {
 
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
-        printf("http: Registering URI handlers");
+        ESP_LOGI(TAG, "Registering URI handlers");
 
         httpPageConfigDeviceHTMLInit(server);
         httpPageConfigDieSensorsHTMLInit(server);
@@ -580,10 +355,12 @@ static httpd_handle_t start_webserver(void) {
         httpPageConfigMQTTHTMLInit(server);
         httpPageConfigNTPHTMLInit(server);
         httpPageConfigWiFiHTMLInit(server);
+        httpFileFaviconPNGInit(server);
         httpPageIndexHTMLInit(server);
         httpPageJavascriptJSInit(server);
         httpPageMenuCSSInit(server);
         httpPageMenuHTMLInit(server);
+        httpPageRuntimeStatsInit(server);
         httpPageStyleCSSInit(server);
 
         return server;
@@ -600,9 +377,9 @@ static void httpServerTask(void *arg){
 
 	while (true){
 
-		vTaskDelay(4000 / portTICK_RATE_MS);
+		vTaskDelay(2);
 
-		EventBits = xEventGroupWaitBits(wifiGetEventGroup(), WIFI_CONNECTED_BIT, false, true, 4000 / portTICK_RATE_MS);
+		EventBits = xEventGroupWaitBits(wifiGetEventGroup(), WIFI_CONNECTED_BIT, false, true, 500 / portTICK_RATE_MS);
 
 		if (WIFI_CONNECTED_BIT & EventBits) {
 
@@ -626,5 +403,5 @@ static void httpServerTask(void *arg){
 }
 
 void httpServerInit(){
-	xTaskCreate(&httpServerTask, "http", HTTP_STACK_SIZE, NULL, 12, NULL);
+	xTaskCreate(&httpServerTask, "http", HTTP_STACK_SIZE, NULL, 14, NULL);
 }

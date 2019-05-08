@@ -180,7 +180,7 @@ static void displayTask(void * arg) {
 		vTaskDelay(2); // Delay for 2 ticks to allow scheduler time to execute
 
 		message_t message;
-		if (xQueueReceive(displayQueue, &message, 4000 / portTICK_RATE_MS)) {
+		if (xQueueReceive(displayQueue, &message, 500 / portTICK_RATE_MS)) {
 			updateVariable(&message);
 			disaplyUpdate();
 		}
@@ -200,7 +200,7 @@ void displayInit(void){
 	loadTemplate();
 	updateVariables();
 
-	xTaskCreate(&displayTask, "displayTask", 4096, NULL, 10, NULL);
+	xTaskCreate(&displayTask, "displayTask", 4096, NULL, 11, NULL);
 }
 
 void displayResetNVS(void) {

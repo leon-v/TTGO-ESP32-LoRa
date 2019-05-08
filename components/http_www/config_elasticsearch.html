@@ -1,28 +1,15 @@
-<!DOCTYPE html>
-<html>
-	<head>
-		<title>Beeline - Elasticsearch Configuration</title>
-		<link href="./style.css" rel="stylesheet" type="text/css">
-		<script type="text/javascript" src="/javascript.js"></script>
-	</head>
-	<body >
-		<div class="left">
-			<iframe src="./menu.html"></iframe>
-		</div>
-		<div class="right">
-			<h2>Elasticsearch Configuration</h2>
-				<form action="" method="post">
+<!--#page:template_top_html-->
+<h2>Elasticsearch Configuration</h2>
+	<form action="" method="post">
 
-				<h3>URL</h3>
-				<div class="inputBlock">
-					<div class="input">
-						<input type="text" name="nvs:BeelineNVS:string:elasticURL" value="<!--#nvs:BeelineNVS:string:elasticURL-->" >
-					</div>
-		    		<p class="info">e.g. http://user:pass@elastic.example.com:9200</p>
-				</div>
-
-				<button>Save Settings</button>
-		    </form>
+	<h3>URL</h3>
+	<div class="inputBlock">
+		<div class="input">
+			<input type="text" name="nvs:BeelineNVS:string:elasticURL" value="<!--#nvs:BeelineNVS:string:elasticURL-->" >
 		</div>
-	</body>
-</html>
+		<p class="info">e.g. http://user:pass@elastic.example.com:9200</p>
+	</div>
+
+	<button>Save Settings</button>
+</form>
+<!--#page:template_bottom_html-->

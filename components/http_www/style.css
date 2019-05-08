@@ -20,17 +20,17 @@ body .left{
 	height:100%;
 	border-right: 1px solid #ede5ff;
 }
-body .left iframe{
+body > .left iframe{
 	height:90%;
 	width:100%;
 	border:0;
 	max-width: 280px;
 }
-body .right{
+body > .right{
 	width: 66%;
-    float: left;
-    max-width: 800px;
-    padding-left: 20px;
+	float: left;
+	max-width: 800px;
+	padding-left: 20px;
 	margin-top: 59px;
 }
 
@@ -43,34 +43,39 @@ textarea, input, select, button{
 	font-size: 14px;
 	width:100%;
 }
+
 textarea{
-	height:100%;
-}
-input[type=number]{
-	width: 100px;
-    border: 1px solid #ede5ff;
-    border-radius: 5px;
-    margin-right: 5px;
+	height: 100%;
 }
 input[type=checkbox]{
 	width:auto;
 }
 button{
 	margin-top:20px;
-    width: auto;
-    border: 1px solid white;
-    border-radius: 5px;
-    padding: 5px;
+	width: auto;
+	border: 1px solid white;
+	border-radius: 5px;
+	padding: 5px;
 }
 .info{
 	font-size: 11px;
 }
 .input{
 	padding: 3px;
-    margin-bottom: -5px;
-    border:1px solid #ffffff;
-    border-radius: 5px;
-    max-width: 400px;
+	margin-bottom: -5px;
+	border:1px solid #ffffff;
+	border-radius: 5px;
+	max-width: 300px;
+	display: table;
+}
+.input > *{
+	display: table-cell;
+}
+.input > .l{
+	margin-right: 5px;
+}
+.input > .r{
+	margin-left: 5px;
 }
 
 .roundTop .input{

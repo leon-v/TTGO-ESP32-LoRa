@@ -73,7 +73,7 @@ static void dieSensorsTemperatureTask(void * arg){
 		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
 
 		if (!((dieSensEn >> TEMPERATURE) & 0x01)) {
-			vTaskDelay(4000 / portTICK_RATE_MS);
+			vTaskDelay(1000 / portTICK_RATE_MS);
 			continue;
 		}
 
@@ -112,7 +112,7 @@ static void dieSensorsHallEffectTask(void * arg){
 		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
 
 		if (!((dieSensEn >> HALL_EFFECT) & 0x01)) {
-			vTaskDelay(4000 / portTICK_RATE_MS);
+			vTaskDelay(1000 / portTICK_RATE_MS);
 			continue;
 		}
 
@@ -151,7 +151,7 @@ static void dieSensorsBatteryVoltageTask(void * arg){
 		nvs_get_u8(nvsHandle, "dieSensEn", &dieSensEn);
 
 		if (!((dieSensEn >> BATTERY_VOLTAGE) & 0x01)) {
-			vTaskDelay(4000 / portTICK_RATE_MS);
+			vTaskDelay(1000 / portTICK_RATE_MS);
 			continue;
 		}
 
