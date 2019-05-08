@@ -4,11 +4,18 @@
 #include <esp_log.h>
 #include <string.h>
 
+#include "http.h"
+
 #define TAG "httpSSIFunc"
 
-void httpSSIFunctionsGet(char * outBuffer, char * ssiTag){
+
+void httpSSIFunctionsGet(httpd_req_t *req, char * ssiTag){
 
 	if (strcmp(ssiTag, "runTimeStats") == 0){
-		vTaskGetRunTimeStats(outBuffer);
+		char buffer[1024];
+
+		vTaskGetRunTimeStats(buffer);
+
+		ESP_ERROR_CHECK(httpd_resp_sendstr_chunk(req, buffer));
 	}
 }

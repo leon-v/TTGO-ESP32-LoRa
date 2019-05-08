@@ -152,79 +152,84 @@ void stop_webserver(httpd_handle_t server) {
     httpd_stop(server);
 }
 
-void httpPageReplaceTag(char * outBuffer, char * tag) {
+void httpPageReplaceTag(httpd_req_t *req, char * tag) {
 
 	char * module = strtok(tag, ":");
+	char * error = NULL;
 
 	if (!module){
-		strcpy(outBuffer, "Failed to get module from tag");
+		ESP_ERROR_CHECK(httpd_resp_sendstr_chunk(req, "Failed to get module from tag"));
 	}
 
 	char * ssiTag = strtok(NULL, "");
 
 	if (strcmp(module, "nvs") == 0){
-		httpSSINVSGet(outBuffer, ssiTag);
+		httpSSINVSGet(req, ssiTag);
 	}
 
 	else if (strcmp(module, "functions") == 0){
-		httpSSIFunctionsGet(outBuffer, ssiTag);
+		httpSSIFunctionsGet(req, ssiTag);
 	}
 
 	else if (strcmp(module, "page") == 0){
-		httpSSIPageGet(outBuffer, ssiTag);
+		httpSSIPageGet(req, ssiTag);
 	}
 
 	else{
-		strcpy(outBuffer, "Failed to parse module for tag");
+		ESP_ERROR_CHECK(httpd_resp_sendstr_chunk(req, "Failed to parse module for tag"));
 	}
 }
-static void httpPageGetContent(char * outBuffer, httpd_req_t *req){
+static void httpPageGetContent(httpd_req_t *req){
 
 	httpPage_t * httpPage = (httpPage_t *) req->user_ctx;
 
 	char tag[CONFIG_HTTP_NVS_MAX_STRING_LENGTH];
 
-	char * end = httpPage->page;
-	char * start = strstr(end, START_SSI);
+	char * tagEndHTMLStart = httpPage->page;
+	char * tagStartHTMLEnd = strstr(tagEndHTMLStart, START_SSI);
 
 	int length;
 
-	if (!start){
-		strcpy(outBuffer, end);
+	if (!tagStartHTMLEnd){
+		ESP_ERROR_CHECK(httpd_resp_sendstr_chunk(req, tagEndHTMLStart));
 		return;
 	}
 
-	strcpy(outBuffer, "");
 
+	while (tagStartHTMLEnd != NULL) {
 
-	while (start != NULL) {
+		length = tagStartHTMLEnd - tagEndHTMLStart;
 
-		length = start - end;
-		strncat(outBuffer, end, length);
+		if (length > 0){
+			ESP_ERROR_CHECK(httpd_resp_send_chunk(req, tagEndHTMLStart, length));
+		}
 
-		start+= strlen(START_SSI);
+		tagStartHTMLEnd+= strlen(START_SSI);
 
-		end = strstr(end, END_SSI);
+		tagEndHTMLStart = strstr(tagEndHTMLStart, END_SSI);
 
-		if (!end){
-			start = strstr(start, START_SSI);
+		if (!tagEndHTMLStart){
+			tagStartHTMLEnd = strstr(tagStartHTMLEnd, START_SSI);
 			continue;
 		}
 
-		int length = end - start;
+		length = tagEndHTMLStart - tagStartHTMLEnd;
 
-		memcpy(tag, start, length);
+		memcpy(tag, tagStartHTMLEnd, length);
 		tag[length] = '\0';
 
-		char * outBufferEnd = outBuffer + strlen(outBuffer);
+		httpPageReplaceTag(req, tag);
 
-		httpPageReplaceTag(outBufferEnd, tag);
-
-		end+= strlen(END_SSI);
-		start = strstr(end, START_SSI);
+		tagEndHTMLStart+= strlen(END_SSI);
+		tagStartHTMLEnd = strstr(tagEndHTMLStart, START_SSI);
 	}
 
-	strcat(outBuffer, end);
+	tagStartHTMLEnd = httpPage->page + strlen(httpPage->page);
+
+	length = tagStartHTMLEnd - tagEndHTMLStart;
+	if (length > 0){
+		ESP_ERROR_CHECK(httpd_resp_send_chunk(req, tagEndHTMLStart, length));
+	}
 }
 
 void httpPagePost(httpd_req_t *req, char * buffer, size_t bufferLength){
@@ -274,13 +279,15 @@ static esp_err_t httpPageHandler(httpd_req_t *req){
 	}
 
 	if (httpPage->page){
-		httpPageGetContent(outBuffer, req);
+		httpPageGetContent(req);
 	}
 	else{
-		strcpy(outBuffer, "Nothing found to populate content.");
+		ESP_ERROR_CHECK(httpd_resp_sendstr_chunk(req, "Nothing found to populate content."));
 	}
 
-	return httpd_resp_send(req, outBuffer, strlen(outBuffer));
+	/* Send empty chunk to signal HTTP response completion */
+    httpd_resp_sendstr_chunk(req, NULL);
+    return ESP_OK;
 }
 
 void httpPageRegister(httpd_handle_t server, const httpPage_t * httpPage){
@@ -366,7 +373,7 @@ static httpd_handle_t start_webserver(void) {
         return server;
     }
 
-    printf("http: / Error starting server!");
+    ESP_LOGE(TAG, "Error starting server!");
     return NULL;
 }
 

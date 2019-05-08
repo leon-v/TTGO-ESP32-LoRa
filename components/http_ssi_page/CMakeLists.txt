@@ -5,6 +5,6 @@ file(GLOB component_files "*.c")
 set(COMPONENT_SRCS ${component_files})
 
 set(COMPONENT_REQUIRES )
-set(COMPONENT_PRIV_REQUIRES )
+set(COMPONENT_PRIV_REQUIRES http)
 
 register_component()
