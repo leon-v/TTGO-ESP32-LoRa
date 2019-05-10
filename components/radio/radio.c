@@ -376,8 +376,6 @@ void radioInit(void){
     //configure GPIO with the given settings
     gpio_config(&io_conf);
 
-    //install gpio isr service
-    gpio_install_isr_service(ESP_INTR_FLAG_LOWMED);
     //hook isr handler for specific gpio pin
     gpio_isr_handler_add(LORA_IRQ, radioLoraISR, (void*) LORA_IRQ);
 

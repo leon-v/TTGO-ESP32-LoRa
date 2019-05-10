@@ -20,6 +20,7 @@
 #include "datetime.h"
 #include "ssd1306.h"
 #include "radio.h"
+#include "hcsr04.h"
 
 // #include "os.h"
 // #include "sys/param.h"
@@ -103,6 +104,8 @@ void app_main(void) {
     	displayResetNVS();
 
     	wifiAccessPointInit();
+
+
     }
     else{
 
@@ -125,6 +128,9 @@ void app_main(void) {
     	ESP_ERROR_CHECK( esp_pm_configure(&pm_config) );
 	#endif // CONFIG_PM_ENABLE
 
+    //install gpio isr service
+    gpio_install_isr_service(ESP_INTR_FLAG_LOWMED);
+
     dateTimeInit();
 
     httpServerInit();
@@ -138,5 +144,7 @@ void app_main(void) {
     radioInit();
 
     dieSensorsInit();
+
+    hcsr04Init();
 }
 

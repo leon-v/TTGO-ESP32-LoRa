@@ -11,11 +11,14 @@
 
 void httpSSIFunctionsGet(httpd_req_t *req, char * ssiTag){
 
+	char buffer[1024];
+
 	if (strcmp(ssiTag, "runTimeStats") == 0){
-		char buffer[1024];
-
 		vTaskGetRunTimeStats(buffer);
-
+		ESP_ERROR_CHECK(httpd_resp_sendstr_chunk(req, buffer));
+	}
+	else if (strcmp(ssiTag, "taskList") == 0) {
+		vTaskList(buffer);
 		ESP_ERROR_CHECK(httpd_resp_sendstr_chunk(req, buffer));
 	}
 }
