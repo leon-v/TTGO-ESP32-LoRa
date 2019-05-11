@@ -129,7 +129,7 @@ void app_main(void) {
 	#endif // CONFIG_PM_ENABLE
 
     //install gpio isr service
-    gpio_install_isr_service(ESP_INTR_FLAG_LOWMED);
+    gpio_install_isr_service(ESP_INTR_FLAG_LEVEL3);
 
     dateTimeInit();
 

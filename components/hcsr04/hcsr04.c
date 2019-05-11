@@ -5,75 +5,122 @@
 #include <driver/gpio.h>
 #include <esp_log.h>
 
+#include <soc/timer_group_struct.h>
+#include <driver/periph_ctrl.h>
+#include <driver/timer.h>
+
 #define TRIG_PIN 13
-#define ECHO_PIN 14
+#define ECHO_PIN 12
 
 #define TAG "HCSR04"
 
-static TimerHandle_t timer;
-BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+#define TIMER_DIVIDER         2  //  Hardware timer clock divider
+#define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
+#define TIMER_SCALEUS		  TIMER_SCALE * 1000000
+
 static xQueueHandle hcsr04Queue = NULL;
 
-void hcsr04TimerExpire( TimerHandle_t xTimer ){
+unsigned char timerRunning = 0;
 
-	int ticks = -1;
+void IRAM_ATTR hcsr04TimerISR(void * arg){
 
-	xQueueSend(hcsr04Queue, &ticks, 0);
+	timer_pause(TIMER_GROUP_0, TIMER_0);
+
+	TIMERG0.int_clr_timers.t0 = 1;
+
+	uint64_t counts = 0;
+
+	xQueueSendFromISR(hcsr04Queue, &counts, NULL);
 }
 
-static void hcsr04ISR(void * arg){
+void IRAM_ATTR hcsr04EchoISR(void * arg){
 
-	int state = (uint32_t) arg;
+	timer_pause(TIMER_GROUP_0, TIMER_0);
 
-	xTimerStopFromISR( timer, &xHigherPriorityTaskWoken);
+	uint32_t pin = (uint32_t) arg;
 
-	int ticks = xTimerGetPeriod(timer);
+	if (gpio_get_level(pin)){
 
-	xQueueSendFromISR(hcsr04Queue, &ticks, 0);
+		timer_start(TIMER_GROUP_0, TIMER_0);
+	}
+	else{
+
+		uint64_t counts;
+		timer_get_counter_value(TIMER_GROUP_0, TIMER_0, &counts);
+
+		xQueueSendFromISR(hcsr04Queue, &counts, NULL);
+	}
 }
 
 void hcsr04Trigger(void){
 
-	if (xTimerReset(timer, 0) != pdPASS) {
-		ESP_LOGE(TAG, "Timer reset error");
-		return;
-	}
+	timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0x00000000ULL);
+
+	timer_set_alarm(TIMER_GROUP_0, TIMER_0, TIMER_ALARM_EN);
 
 	gpio_set_level(TRIG_PIN, 1);
-	vTaskDelay(1 / portTICK_RATE_MS);
-	gpio_set_level(TRIG_PIN, 0);
 
-	if( xTimerStart( timer, 0 ) != pdPASS ) {
-		ESP_LOGE(TAG, "Timer start error");
-		return;
-	}
+	ets_delay_us(10);
+
+	gpio_set_level(TRIG_PIN, 0);
 }
 
+#define SAMPLES 10;
 void hcsr04Task(void * arg){
 
 	while (1){
 
-		vTaskDelay(5000 / portTICK_RATE_MS);
+		vTaskDelay(1000 / portTICK_RATE_MS);
 
-		hcsr04Trigger();
+		int samples = SAMPLES;
+		int actualSamples = 0;
+		double distance = 0.00;
+		uint64_t counts;
+		double average = 0.00;
+		double microseconds = 0.00;
 
-		int ticks;
-		if (!xQueueReceive(hcsr04Queue, &ticks, 500 / portTICK_RATE_MS)) {
+		while (samples--){
+
+			vTaskDelay(60 / portTICK_RATE_MS);
+
+			hcsr04Trigger();
+
+			if (!xQueueReceive(hcsr04Queue, &counts, 20 / portTICK_RATE_MS)) {
+				// ESP_LOGE(TAG, " No response from module");
+				continue;
+			}
+
+			if (counts == 0){
+				continue;
+			}
+
+			actualSamples++;
+			average+= counts;
+		}
+
+		if (actualSamples < 10){
+			ESP_LOGE(TAG, "Not enough samples.");
 			continue;
 		}
 
-		ESP_LOGW(TAG, "%d", ticks);
+		average/= actualSamples;
+
+		average = average / TIMER_SCALEUS;
+
+		distance = average / 5.8;
+
+		ESP_LOGW(TAG, "Average Count: %f = %fus = %fmm\n", average, microseconds, distance);
 	}
 }
 
 void hcsr04Init(void){
 
-	hcsr04Queue = xQueueCreate(1, sizeof(int));
+	hcsr04Queue = xQueueCreate(3, sizeof(double));
 
 	gpio_config_t io_conf;
 
     //disable interrupt
-    io_conf.intr_type = GPIO_INTR_POSEDGE;
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
     //set as output mode
     io_conf.mode = GPIO_MODE_INPUT;
     //bit mask of the pins that you want to set,e.g.GPIO18/19
@@ -92,11 +139,26 @@ void hcsr04Init(void){
     gpio_config(&io_conf);
 
     //hook isr handler for specific gpio pin
-    gpio_isr_handler_add(ECHO_PIN, hcsr04ISR, (void*) ECHO_PIN);
+    gpio_isr_handler_add(ECHO_PIN, hcsr04EchoISR, (void*) ECHO_PIN);
+    // gpio_isr_register(hcsr04EchoISR, (void*) ECHO_PIN, ESP_INTR_FLAG_HIGH);
 
-    int timerId = 1;
-    timer = xTimerCreate("hcsr04Timer", 50 / portTICK_RATE_MS, pdFALSE, (void *) timerId, hcsr04TimerExpire);
-    xTimerStop(timer, 0);
 
-    xTaskCreate(&hcsr04Task, "hcsr04Task", 2048, NULL, 20, NULL);
+    /* Select and initialize basic parameters of the timer */
+    timer_config_t config;
+    config.auto_reload = TIMER_AUTORELOAD_DIS;
+    config.divider = TIMER_DIVIDER;
+    config.counter_dir = TIMER_COUNT_UP;
+    config.counter_en = TIMER_PAUSE;
+    config.intr_type = TIMER_INTR_LEVEL;
+    config.auto_reload = 0;
+
+    timer_init(TIMER_GROUP_0, TIMER_0, &config);
+
+    timer_set_alarm_value(TIMER_GROUP_0, TIMER_0, 0.01 * TIMER_SCALE);
+
+    timer_isr_register(TIMER_GROUP_0, TIMER_0, hcsr04TimerISR, NULL, ESP_INTR_FLAG_IRAM, NULL);
+
+    timer_enable_intr(TIMER_GROUP_0, TIMER_0);
+
+    xTaskCreate(&hcsr04Task, "hcsr04Task", 2048, NULL, 13, NULL);
 }

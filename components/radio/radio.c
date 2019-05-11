@@ -322,7 +322,7 @@ void radioLoRaQueueAdd(message_t * message){
 	}
 }
 
-static void radioLoraISR(void * arg){
+static void IRAM_ATTR radioLoraISR(void * arg){
 
 	message_t message;
 
@@ -377,7 +377,8 @@ void radioInit(void){
     gpio_config(&io_conf);
 
     //hook isr handler for specific gpio pin
-    gpio_isr_handler_add(LORA_IRQ, radioLoraISR, (void*) LORA_IRQ);
+    // gpio_isr_handler_add(LORA_IRQ, radioLoraISR, (void*) LORA_IRQ);
+    // gpio_isr_register(radioLoraISR, (void*) LORA_IRQ, ESP_INTR_FLAG_LOWMED, NULL);
 
     ESP_ERROR_CHECK(gpio_wakeup_enable(LORA_IRQ, GPIO_INTR_HIGH_LEVEL));
     ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
