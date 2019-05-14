@@ -298,7 +298,7 @@ static void radioTask(void * arg){
 			lora_sleep();
 		}
 
-		if (!xQueueReceive(radioQueue, &message, 500 / portTICK_RATE_MS)) {
+		if (!xQueueReceive(radioQueue, &message, 4000 / portTICK_RATE_MS)) {
 			continue;
 		}
 

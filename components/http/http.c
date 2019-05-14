@@ -14,6 +14,7 @@
 #include "config_diesensors_html.h"
 #include "config_display_html.h"
 #include "config_elasticsearch_html.h"
+#include "config_hcsr04_html.h"
 #include "config_lora_html.h"
 #include "config_mqtt_html.h"
 #include "config_ntp_html.h"
@@ -358,6 +359,7 @@ static httpd_handle_t start_webserver(void) {
         httpPageConfigDieSensorsHTMLInit(server);
         httpPageConfigDisplayHTMLInit(server);
         httpPageConfigElasticsearchHTMLInit(server);
+        httpPageConfigHCSR04HTMLInit(server);
         httpPageConfigLoRaHTMLInit(server);
         httpPageConfigMQTTHTMLInit(server);
         httpPageConfigNTPHTMLInit(server);

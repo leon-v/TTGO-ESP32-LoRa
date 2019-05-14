@@ -209,6 +209,8 @@ void dieSensorsResetNVS(void) {
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "delayHall", 4000));
 	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "delayBattV", 4000));
 
+	nvs_commit(nvsHandle);
+
 	nvs_close(nvsHandle);
 
 	messageNVSReset("dieSens", 0x00);

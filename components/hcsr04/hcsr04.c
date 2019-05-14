@@ -4,10 +4,14 @@
 #include <freertos/timers.h>
 #include <driver/gpio.h>
 #include <esp_log.h>
+#include <nvs.h>
+#include <string.h>
 
 #include <soc/timer_group_struct.h>
 #include <driver/periph_ctrl.h>
 #include <driver/timer.h>
+
+#include "message.h"
 
 #define TRIG_PIN 13
 #define ECHO_PIN 12
@@ -65,23 +69,37 @@ void hcsr04Trigger(void){
 	gpio_set_level(TRIG_PIN, 0);
 }
 
-#define SAMPLES 10;
+#define SAMPLES 20;
+#define REQUIRED_SAMPLES 10
 void hcsr04Task(void * arg){
+
+	size_t nvsLength;
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READONLY, &nvsHandle));
 
 	while (1){
 
-		vTaskDelay(1000 / portTICK_RATE_MS);
+		int loop = SAMPLES;
+		int samples = 0;
+		unsigned int delay;
 
-		int samples = SAMPLES;
-		int actualSamples = 0;
-		double distance = 0.00;
+		message_t message;
+		message.valueType = MESSAGE_DOUBLE;
+		strcpy(message.sensorName, "Distance");
+		message.doubleValue = 0.00;
+
+		nvsLength = sizeof(message.deviceName);
+		nvs_get_str(nvsHandle, "uniqueName", message.deviceName, &nvsLength);
+
+		nvs_get_u32(nvsHandle, "delayHCSR04", &delay);
+
+		vTaskDelay(delay / portTICK_RATE_MS);
+
 		uint64_t counts;
-		double average = 0.00;
-		double microseconds = 0.00;
 
-		while (samples--){
+		while (loop--){
 
-			vTaskDelay(60 / portTICK_RATE_MS);
+			vTaskDelay(100 / portTICK_RATE_MS);
 
 			hcsr04Trigger();
 
@@ -94,23 +112,31 @@ void hcsr04Task(void * arg){
 				continue;
 			}
 
-			actualSamples++;
-			average+= counts;
+			samples++;
+			message.doubleValue+= counts;
+
+			if (samples >= REQUIRED_SAMPLES){
+				break;
+			}
 		}
 
-		if (actualSamples < 10){
+		if (samples < REQUIRED_SAMPLES){
 			ESP_LOGE(TAG, "Not enough samples.");
 			continue;
 		}
 
-		average/= actualSamples;
+		message.doubleValue = message.doubleValue / samples;
 
-		average = average / TIMER_SCALEUS;
+		message.doubleValue = message.doubleValue / TIMER_SCALEUS;
 
-		distance = average / 5.8;
+		message.doubleValue = message.doubleValue / 5.8;
 
-		ESP_LOGW(TAG, "Average Count: %f = %fus = %fmm\n", average, microseconds, distance);
+		messageIn(&message, TAG);
 	}
+
+	nvs_close(nvsHandle);
+
+	vTaskDelete(NULL);
 }
 
 void hcsr04Init(void){
@@ -161,4 +187,18 @@ void hcsr04Init(void){
     timer_enable_intr(TIMER_GROUP_0, TIMER_0);
 
     xTaskCreate(&hcsr04Task, "hcsr04Task", 2048, NULL, 13, NULL);
+}
+
+void hcsr04ResetNVS(void) {
+
+	nvs_handle nvsHandle;
+	ESP_ERROR_CHECK(nvs_open("BeelineNVS", NVS_READWRITE, &nvsHandle));
+
+	ESP_ERROR_CHECK(nvs_set_u32(nvsHandle, "delayHCSR04", 4000));
+
+	nvs_commit(nvsHandle);
+
+	nvs_close(nvsHandle);
+
+	messageNVSReset("HCSR04", 0x00);
 }

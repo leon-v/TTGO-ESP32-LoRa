@@ -10,8 +10,6 @@
 
 #define IDLE_CONFIG_BIT 0
 
-static const char * ROUTE_NAME = "wifi";
-
 static EventGroupHandle_t wifiEventGroup;
 static char wifiEnabled = 0;
 static TimerHandle_t idleTimer;
@@ -89,7 +87,7 @@ static void wifiGotIP(const ip4_addr_t *addr){
 	strcpy(message.sensorName, "wifiIp");
 	strcpy(message.stringValue, ip4addr_ntoa(addr));
 
-	messageIn(&message, ROUTE_NAME);
+	messageIn(&message, TAG);
 }
 
 static esp_err_t wifiEventHandler(void *ctx, system_event_t *event){

@@ -98,6 +98,7 @@ void app_main(void) {
     	wifiClientResetNVS();
     	mqttConnectionResetNVS();
     	elasticResetNVS();
+    	hcsr04ResetNVS();
     	datTimeResetNVS();
     	radioResetNVS();
     	dieSensorsResetNVS();
